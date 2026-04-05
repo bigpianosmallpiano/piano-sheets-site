@@ -47,18 +47,14 @@ SCORE_LINK_PATTERNS = [
 
 # Credit attribution lines
 CREDIT_PATTERNS = [
+    # "Piano Sheet @AnimuzAnimePiano" or "Piano Sheets @name1 @name2 @name3"
+    r"piano\s+sheets?\s+((?:@[\w-]+\s*)+)",
     # "Piano Sheet from @AnimuzAnimePiano"
-    r"piano\s+sheet\s+from\s+@?([\w\s]+?)(?:\n|$|https?://|\s{2,})",
-    # "(Credits to Animuz for the sheet...)" or "(Credits: Animuz)"
-    r"\(credits?(?:\s+to)?\s+@?([\w]+)(?:\s+for[^)]+)?\)",
-    # "Piano Score @XXXXXX"  
-    r"piano\s+(?:score|sheet)\s+@([\w]+)",
-    # "Piano Score @XXXXXX" or "Piano Sheet @XXXXXX"
-    r"piano\s+(?:score|sheet)\s+@([\w]+)",
-    # "Piano Sheet (Credits to @WaragonSom)"
-    r"credits?\s+to\s+@?([\w\s]+?)(?:\)|\n|$|\s{2,})",
+    r"piano\s+sheet\s+from\s+@?([\w-]+)",
+    # "(Credits to @StarryCosmoss-Piano)" or "(Credits: Animuz)"
+    r"\(credits?(?:\s+to)?\s+@?([\w-]+)(?:\s+for[^)]+)?\)",
     # "obtained via @ChewieMelodies"
-    r"(?:obtained\s+)?via\s+@?([\w\s]+?)(?:'s|\n|$|\s{2,})",
+    r"(?:obtained\s+)?via\s+@?([\w-]+)(?:'s)?",
     # "Arranged by:", "Score by:", "Transcribed by:"
     r"(?:arranged?|arr\.?)\s*(?:by)?[:\-\s]+([^\n\r]{2,60})",
     r"(?:score|sheet music)\s+by[:\-\s]+([^\n\r]{2,60})",
@@ -198,11 +194,16 @@ def extract_score_links(description: str) -> list[str]:
 
 # Map shorthand names to full correct credits
 NAME_CORRECTIONS = {
-    "animuz":   "AnimuzAnimePiano",
-    "chaconne": "ChaconneScott",
-    "chacon":   "ChaconneScott",
-    "chewie":   "ChewieMelodies",
-    "waragon":  "WaragonSom",
+    "animuz":           "AnimuzAnimePiano",
+    "chaconne":         "ChaconneScott",
+    "chacon":           "ChaconneScott",
+    "chewie":           "ChewieMelodies",
+    "waragon":          "WaragonSom",
+    "starrycosmos":     "StarryCosmoss-Piano",
+    "starrycosmos-piano": "StarryCosmoss-Piano",
+    "wangzichen962":    "wangzichen962",
+    "haoyiwang":        "Haoyi Wang",
+    "marupiano":        "MaruPiano",
 }
 
 def extract_credits(description: str) -> list[str]:
