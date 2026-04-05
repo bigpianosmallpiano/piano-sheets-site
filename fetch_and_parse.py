@@ -49,6 +49,8 @@ SCORE_LINK_PATTERNS = [
 CREDIT_PATTERNS = [
     # "Piano Sheet from @AnimuzAnimePiano"
     r"piano\s+sheet\s+from\s+@?([\w\s]+?)(?:\n|$|https?://|\s{2,})",
+    # "Piano Score @XXXXXX" or "Piano Sheet @XXXXXX"
+    r"piano\s+(?:score|sheet)\s+@([\w]+)",
     # "Piano Sheet (Credits to @WaragonSom)"
     r"credits?\s+to\s+@?([\w\s]+?)(?:\)|\n|$|\s{2,})",
     # "obtained via @ChewieMelodies"
