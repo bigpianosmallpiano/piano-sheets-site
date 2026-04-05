@@ -193,11 +193,7 @@ def extract_score_links(description: str) -> list[str]:
 
 
 # Map shorthand names to full correct credits
-Good fix — we need two things: a blocklist to prevent your own name appearing as credit, and a fallback that detects the link source instead.
-
-Replace the entire extract_credits function and add a new get_credit_fallback function in fetch_and_parse.py:
-Find and replace everything from NAME_CORRECTIONS = { down to the end of extract_credits, with this:
-python# Your own channel names — never show these as credits
+# Your own channel names — never show these as credits
 SELF_NAMES = {
     "bigpianosmallpiano", "big piano small piano", "bigpiano",
     "bigpianosmallpiano", "piano small piano", "small piano",
