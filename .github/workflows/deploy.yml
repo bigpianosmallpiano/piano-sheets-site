@@ -4,18 +4,9 @@ on:
   schedule:
     - cron: "0 6 * * *"
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths-ignore:
-      - "**.md"
-
-concurrency:
-  group: deploy-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   sync-and-deploy:
-    name: Fetch YouTube data → Build → Deploy
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -23,7 +14,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -31,12 +22,12 @@ jobs:
       - name: Install Python dependencies
         run: pip install requests
 
-      - name: Sync YouTube videos and parse scores
+      - name: Sync YouTube videos
         env:
           YT_API_KEY: ${{ secrets.YT_API_KEY }}
         run: python fetch_and_parse.py
 
-      - name: Set up Node.js 20
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
@@ -46,18 +37,16 @@ jobs:
 
       - name: Build Astro site
         run: npm run build
-        env:
-          NODE_ENV: production
 
-      - name: Commit updated data files
+      - name: Commit data files
         run: |
-          git config user.name  "GitHub Actions Bot"
+          git config user.name "GitHub Actions Bot"
           git config user.email "bot@users.noreply.github.com"
           git add src/data/
           if git diff --staged --quiet; then
-            echo "No data changes — skipping commit."
+            echo "No changes"
           else
-            git commit -m "chore: sync YouTube data $(date -u +'%Y-%m-%d %H:%M UTC')"
+            git commit -m "sync YouTube data"
             git push
           fi
 
@@ -67,8 +56,9 @@ jobs:
           publish-dir: ./dist
           production-branch: main
           production-deploy: true
-          deploy-message: "Auto-deploy"
           enable-commit-comment: false
           enable-pull-request-comment: false
         env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_T
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        timeout-minutes: 10
