@@ -31,34 +31,32 @@ OUTPUT_DIR  = os.path.join("src", "data")
 
 # Score / sheet music download links
 SCORE_LINK_PATTERNS = [
-    # Google Drive (share links & direct links)
     r"https?://(?:drive|docs)\.google\.com/\S+",
-    # Musescore
     r"https?://(?:www\.)?musescore\.com/\S+",
-    # Dropbox
     r"https?://(?:www\.)?dropbox\.com/\S+",
-    # IMSLP
     r"https?://(?:www\.)?imslp\.org/\S+",
-    # Mediafire
     r"https?://(?:www\.)?mediafire\.com/\S+",
-    # Any direct PDF link
     r"https?://\S+\.pdf(?:\?\S*)?",
-    # Scribd
     r"https?://(?:www\.)?scribd\.com/\S+",
-    # OneDrive / SharePoint
     r"https?://1drv\.ms/\S+",
-    r"https?://\S+\.sharepoint\.com/\S+",
+    r"https?://\S+\.gumroad\.com/\S+",       # ← your own scores
+    r"https?://gumroad\.com/\S+",
+    r"https?://(?:www\.)?patreon\.com/\S+",  # ← ChewieMelodies
+    r"https?://(?:www\.)?chaconnescott\.(?:gumroad\.com|com)/\S+",
 ]
 
 # Credit attribution lines
 CREDIT_PATTERNS = [
-    # "Arranged by: Name", "Score by - Name", "Transcribed by Name"
-    r"(?:arranged?|arr\.?)\s*(?:by)?[:\-\s]+([^\n\r]{2,80})",
-    r"(?:score|sheet music|notation)\s+by[:\-\s]+([^\n\r]{2,80})",
-    r"transcri(?:bed?|ption)\s*(?:by)?[:\-\s]+([^\n\r]{2,80})",
-    r"composed?\s*(?:by)?[:\-\s]+([^\n\r]{2,80})",
-    # Japanese / Korean channels sometimes use "楽譜" but we still catch English
-    r"piano\s+arr(?:angement)?[:\-\s]+([^\n\r]{2,80})",
+    # "Piano Sheet from @AnimuzAnimePiano"
+    r"piano\s+sheet\s+from\s+@?([\w\s]+?)(?:\n|$|https?://|\s{2,})",
+    # "Piano Sheet (Credits to @WaragonSom)"
+    r"credits?\s+to\s+@?([\w\s]+?)(?:\)|\n|$|\s{2,})",
+    # "obtained via @ChewieMelodies"
+    r"(?:obtained\s+)?via\s+@?([\w\s]+?)(?:'s|\n|$|\s{2,})",
+    # "Arranged by:", "Score by:", "Transcribed by:"
+    r"(?:arranged?|arr\.?)\s*(?:by)?[:\-\s]+([^\n\r]{2,60})",
+    r"(?:score|sheet music)\s+by[:\-\s]+([^\n\r]{2,60})",
+    r"transcri(?:bed?|ption)\s*(?:by)?[:\-\s]+([^\n\r]{2,60})",
 ]
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
