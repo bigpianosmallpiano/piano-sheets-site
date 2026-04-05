@@ -1,0 +1,207 @@
+---
+// src/pages/videos/[slug].astro
+// ── Individual video post — one page per YouTube video ───────────────────
+
+import Layout from "../../layouts/Layout.astro";
+import videos from "../../data/videos.json";
+import scores from "../../data/scores.json";
+
+export async function getStaticPaths() {
+  return videos.map((video) => ({
+    params: { slug: video.slug },
+    props:  { video },
+  }));
+}
+
+const { video } = Astro.props;
+
+// Find any scores associated with this video
+const videoScores = scores.filter((s) => s.videoId === video.videoId);
+
+// Build a clean meta description from the first 155 chars of description
+const metaDescription = video.description
+  .replace(/\n+/g, " ")
+  .replace(/\s{2,}/g, " ")
+  .trim()
+  .slice(0, 155);
+
+// Format date for display and schema
+const publishDate     = new Date(video.publishedAt);
+const displayDate     = publishDate.toLocaleDateString("en-GB", {
+  day: "numeric", month: "long", year: "numeric",
+});
+
+// Related videos (exclude self, take up to 3)
+const related = videos
+  .filter((v) => v.videoId !== video.videoId)
+  .slice(0, 3);
+
+const siteUrl   = "https://bigpianosmallpiano.com";
+const pageUrl   = `${siteUrl}/videos/${video.slug}`;
+const embedUrl  = `https://www.youtube.com/embed/${video.videoId}`;
+const watchUrl  = `https://www.youtube.com/watch?v=${video.videoId}`;
+
+// JSON-LD VideoObject schema — tells Google this is a video page
+const jsonLd = {
+  "@context":     "https://schema.org",
+  "@type":        "VideoObject",
+  "name":         video.title,
+  "description":  metaDescription,
+  "thumbnailUrl": [video.thumbnail],
+  "uploadDate":   video.publishedAt,
+  "embedUrl":     embedUrl,
+  "url":          watchUrl,
+  "author": {
+    "@type": "Person",
+    "name":  "Big Piano Small Piano",
+    "url":   "https://www.youtube.com/channel/UCsKtOGplqKz3uGt9XD8VexQ",
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name":  "Big Piano Small Piano",
+    "url":   siteUrl,
+  },
+  ...(video.viewCount > 0 && {
+    "interactionStatistic": {
+      "@type":                 "InteractionCounter",
+      "interactionType":       "https://schema.org/WatchAction",
+      "userInteractionCount":  video.viewCount,
+    },
+  }),
+};
+---
+
+<Layout
+  title={`${video.title} | Big Piano Small Piano`}
+  description={metaDescription || `Watch ${video.title} — a piano cover by Big Piano Small Piano.`}
+  image={video.thumbnail || "/og-default.jpg"}
+  type="video.other"
+>
+  <!-- ── JSON-LD ─────────────────────────────────────────────────────────── -->
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+
+  <!-- ── Breadcrumb ──────────────────────────────────────────────────────── -->
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 pt-6">
+    <nav class="text-xs text-ivory/40 flex items-center gap-1.5" aria-label="Breadcrumb">
+      <a href="/" class="hover:text-gold transition-colors">Home</a>
+      <span>/</span>
+      <a href="/#videos" class="hover:text-gold transition-colors">Videos</a>
+      <span>/</span>
+      <span class="text-ivory/60 truncate max-w-xs">{video.title}</span>
+    </nav>
+  </div>
+
+  <!-- ══════════════════════════ MAIN CONTENT ═════════════════════════════════ -->
+  <article class="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+
+    <!-- Title block -->
+    <header class="mb-8">
+      <h1 class="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold text-ivory leading-tight mb-3">
+        {video.title}
+      </h1>
+      <div class="flex flex-wrap items-center gap-4 text-sm text-ivory/40">
+        <time datetime={video.publishedAt}>{displayDate}</time>
+        {video.viewCount > 0 && (
+          <span>
+            {video.viewCount.toLocaleString()} views
+          </span>
+        )}
+        <a
+          href={watchUrl}
+          target="_blank" rel="noopener noreferrer"
+          class="text-gold hover:text-gold-light transition-colors"
+        >
+          Watch on YouTube ↗
+        </a>
+      </div>
+    </header>
+
+    <!-- ── Video embed ──────────────────────────────────────────────────── -->
+    <div class="relative aspect-video w-full rounded-xl overflow-hidden border border-surface-border shadow-card mb-10">
+      <iframe
+        src={embedUrl}
+        title={video.title}
+        class="absolute inset-0 w-full h-full"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowfullscreen
+        loading="lazy"
+      ></iframe>
+    </div>
+
+    <!-- ── Piano Scores block (if any found) ───────────────────────────── -->
+    {videoScores.length > 0 && (
+      <section class="mb-10 bg-surface rounded-xl border border-gold/20 p-5 sm:p-6">
+        <div class="flex items-center gap-2 mb-4">
+          <span class="text-gold text-lg">♪</span>
+          <h2 class="font-display text-xl font-semibold text-ivory">Free Piano Scores</h2>
+        </div>
+        <ul class="space-y-3">
+          {videoScores.flatMap((s) =>
+            s.scoreLinks.map((link: string, i: number) => (
+              <li class="flex flex-col sm:flex-row sm:items-center gap-2 text-sm border-b border-surface-border pb-3 last:border-0 last:pb-0">
+                <a
+                  href={link}
+                  target="_blank" rel="noopener noreferrer"
+                  class="text-gold hover:text-gold-light transition-colors break-all"
+                >
+                  Download score {s.scoreLinks.length > 1 ? i + 1 : ""} ↗
+                </a>
+                {s.credits && s.credits.length > 0 && (
+                  <span class="text-ivory/40 sm:ml-auto flex-shrink-0">
+                    Arranged by {s.credits[0]}
+                  </span>
+                )}
+              </li>
+            ))
+          )}
+        </ul>
+        <p class="mt-4 text-xs text-ivory/30">
+          Also see the <a href="/scores" class="text-gold hover:underline">full Free Piano Scores page</a> for all available sheet music.
+        </p>
+      </section>
+    )}
+
+    <!-- ── Description ─────────────────────────────────────────────────── -->
+    <section class="mb-10">
+      <h2 class="font-display text-xl font-semibold text-ivory mb-4">About this video</h2>
+      <div class="text-ivory/70 text-sm leading-relaxed whitespace-pre-wrap bg-surface rounded-xl border border-surface-border p-5 sm:p-6">
+        {video.description}
+      </div>
+    </section>
+
+  </article>
+
+  <hr class="gold-rule max-w-4xl mx-auto" />
+
+  <!-- ══════════════════════════ RELATED VIDEOS ═══════════════════════════════ -->
+  {related.length > 0 && (
+    <section class="max-w-4xl mx-auto px-4 sm:px-6 py-12">
+      <p class="text-gold text-xs tracking-[0.2em] uppercase font-mono mb-2">More from the channel</p>
+      <h3 class="font-display text-2xl font-semibold text-ivory mb-6">Related Videos</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {related.map((v) => (
+          <a
+            href={`/videos/${v.slug}`}
+            class="group bg-surface rounded-xl border border-surface-border overflow-hidden hover:border-gold/40 transition-all duration-300 flex flex-col"
+          >
+            {v.thumbnail && (
+              <div class="aspect-video overflow-hidden">
+                <img
+                  src={v.thumbnail}
+                  alt={v.title}
+                  width="320" height="180"
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  loading="lazy"
+                />
+              </div>
+            )}
+            <p class="p-3 text-sm font-display text-ivory/80 group-hover:text-gold transition-colors line-clamp-2 leading-snug">
+              {v.title}
+            </p>
+          </a>
+        ))}
+      </div>
+    </section>
+  )}
+
+</Layout>

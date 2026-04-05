@@ -1,0 +1,170 @@
+---
+// src/layouts/Layout.astro
+// ── Base layout shared by all pages ──────────────────────────────────────────
+// Props:
+//   title       – <title> tag content
+//   description – meta description (keep under 160 chars)
+//   image       – og:image URL (optional, defaults to site OG image)
+//   type        – og:type (default "website")
+//   noindex     – set true to add noindex (e.g. paginated pages)
+
+export interface Props {
+  title:       string;
+  description: string;
+  image?:      string;
+  type?:       string;
+  noindex?:    boolean;
+}
+
+const {
+  title,
+  description,
+  image       = "/og-default.jpg",
+  type        = "website",
+  noindex     = false,
+} = Astro.props;
+
+const siteUrl     = "https://bigpianosmallpiano.com";
+const canonicalURL = new URL(Astro.url.pathname, siteUrl).href;
+const fullTitle    = title.includes("Big Piano") ? title
+                   : `${title} | Big Piano Small Piano`;
+---
+
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ── Primary SEO ──────────────────────────────────────────────────────── -->
+  <title>{fullTitle}</title>
+  <meta name="description"        content={description} />
+  <link rel="canonical"           href={canonicalURL} />
+  {noindex && <meta name="robots" content="noindex, follow" />}
+
+  <!-- ── Open Graph (Facebook / LinkedIn / WhatsApp) ──────────────────────── -->
+  <meta property="og:type"        content={type} />
+  <meta property="og:url"         content={canonicalURL} />
+  <meta property="og:title"       content={fullTitle} />
+  <meta property="og:description" content={description} />
+  <meta property="og:image"       content={image.startsWith("http") ? image : `${siteUrl}${image}`} />
+  <meta property="og:site_name"   content="Big Piano Small Piano" />
+  <meta property="og:locale"      content="en_US" />
+
+  <!-- ── Twitter Card ─────────────────────────────────────────────────────── -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content={fullTitle} />
+  <meta name="twitter:description" content={description} />
+  <meta name="twitter:image"       content={image.startsWith("http") ? image : `${siteUrl}${image}`} />
+
+  <!-- ── Site identity ────────────────────────────────────────────────────── -->
+  <link rel="icon"             href="/favicon.ico" sizes="any" />
+  <link rel="icon"             href="/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest"         href="/site.webmanifest" />
+  <meta name="theme-color"     content="#0D0D0D" />
+
+  <!-- ── Fonts (Playfair Display + DM Sans) ───────────────────────────────── -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- ── Preconnect YouTube (iframes load faster) ─────────────────────────── -->
+  <link rel="preconnect" href="https://www.youtube.com" />
+  <link rel="dns-prefetch" href="https://i.ytimg.com" />
+
+  <!-- ── Global base styles ───────────────────────────────────────────────── -->
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+    html { background-color: #0D0D0D; }
+    body { font-family: 'DM Sans', system-ui, sans-serif; }
+
+    /* Gold divider line reusable utility */
+    .gold-rule {
+      border: none;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #C9A84C 40%, #C9A84C 60%, transparent);
+    }
+    /* Smooth card reveal on scroll — add .reveal class + JS below */
+    .reveal { opacity: 0; transform: translateY(16px); transition: opacity 0.5s ease, transform 0.5s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
+  </style>
+</head>
+
+<body class="bg-ebony text-ivory font-body antialiased min-h-screen flex flex-col">
+
+  <!-- ═══════════════════════════════ NAV ════════════════════════════════════ -->
+  <header class="sticky top-0 z-50 border-b border-surface-border bg-ebony/95 backdrop-blur-sm">
+    <nav class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-6">
+
+      <!-- Wordmark -->
+      <a href="/" class="flex items-center gap-2 group flex-shrink-0">
+        <span class="text-gold text-xl leading-none select-none">♪</span>
+        <span class="font-display font-semibold text-ivory text-base sm:text-lg tracking-wide group-hover:text-gold transition-colors duration-200">
+          Big Piano <span class="text-gold">·</span> Small Piano
+        </span>
+      </a>
+
+      <!-- Nav links -->
+      <div class="hidden sm:flex items-center gap-1 text-sm">
+        <a href="/"               class="nav-link">Videos</a>
+        <a href="/scores"         class="nav-link">Free Scores</a>
+        <a
+          href="https://www.youtube.com/channel/UCsKtOGplqKz3uGt9XD8VexQ"
+          target="_blank" rel="noopener noreferrer"
+          class="nav-link text-gold hover:text-gold-light"
+        >YouTube ↗</a>
+      </div>
+
+      <!-- Mobile hamburger (CSS-only) -->
+      <label class="sm:hidden cursor-pointer p-1" for="mobile-menu-toggle">
+        <svg class="w-5 h-5 text-ivory" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </label>
+    </nav>
+  </header>
+
+  <!-- ═══════════════════════════════ MAIN ═══════════════════════════════════ -->
+  <main class="flex-1">
+    <slot />
+  </main>
+
+  <!-- ═══════════════════════════════ FOOTER ═════════════════════════════════ -->
+  <footer class="border-t border-surface-border mt-20">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-ivory/40">
+      <p class="font-display italic text-base text-ivory/60">Big Piano Small Piano</p>
+      <div class="flex items-center gap-6">
+        <a href="/" class="hover:text-gold transition-colors">Videos</a>
+        <a href="/scores" class="hover:text-gold transition-colors">Free Scores</a>
+        <a
+          href="https://www.youtube.com/channel/UCsKtOGplqKz3uGt9XD8VexQ"
+          target="_blank" rel="noopener noreferrer"
+          class="hover:text-gold transition-colors"
+        >YouTube ↗</a>
+      </div>
+      <p>&copy; {new Date().getFullYear()} Big Piano Small Piano</p>
+    </div>
+  </footer>
+
+  <!-- ── Scroll-reveal script ──────────────────────────────────────────────── -->
+  <script>
+    const observer = new IntersectionObserver(
+      (entries) => entries.forEach((e) => { if (e.isIntersecting) e.target.classList.add("visible"); }),
+      { threshold: 0.08 }
+    );
+    document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
+  </script>
+</body>
+</html>
+
+<style>
+  .nav-link {
+    @apply px-3 py-1.5 rounded text-ivory/70 hover:text-ivory hover:bg-surface-raised transition-all duration-150;
+  }
+</style>

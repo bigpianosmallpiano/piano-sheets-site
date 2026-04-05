@@ -1,0 +1,270 @@
+---
+// src/pages/index.astro
+// ── Homepage: video grid + search + YouTube CTA ───────────────────────────
+
+import Layout from "../layouts/Layout.astro";
+import videos from "../data/videos.json";
+
+// Format ISO 8601 duration (PT4M33S) into "4:33"
+function formatDuration(iso: string): string {
+  if (!iso) return "";
+  const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!m) return "";
+  const h = parseInt(m[1] || "0");
+  const min = parseInt(m[2] || "0");
+  const sec = parseInt(m[3] || "0").toString().padStart(2, "0");
+  return h > 0 ? `${h}:${min.toString().padStart(2,"0")}:${sec}` : `${min}:${sec}`;
+}
+
+// Format view count: 12345 → "12.3K"
+function formatViews(n: number): string {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
+  if (n >= 1_000)     return (n / 1_000).toFixed(1) + "K";
+  return String(n);
+}
+
+// Format date: "2023-07-14T..." → "14 Jul 2023"
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "numeric", month: "short", year: "numeric",
+  });
+}
+
+const totalVideos   = videos.length;
+const channelUrl    = "https://www.youtube.com/channel/UCsKtOGplqKz3uGt9XD8VexQ";
+const latestVideo   = videos[0];  // already sorted newest-first by the Python script
+---
+
+<Layout
+  title="Big Piano Small Piano — Piano Covers, Tutorials & Free Sheet Music"
+  description="Watch piano covers and tutorials from Big Piano Small Piano. Stream all videos, download free piano sheet music, and discover beautiful piano arrangements."
+>
+
+  <!-- ══════════════════════════ HERO ════════════════════════════════════════ -->
+  <section class="relative overflow-hidden border-b border-surface-border">
+    <!-- Piano key background texture -->
+    <div class="absolute inset-0 bg-keys-pattern opacity-60 pointer-events-none"></div>
+    <!-- Subtle gold gradient top edge -->
+    <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold to-transparent"></div>
+
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24 flex flex-col items-center text-center gap-6">
+
+      <!-- Overline -->
+      <p class="text-gold text-xs tracking-[0.25em] uppercase font-mono">Piano covers &amp; sheet music</p>
+
+      <!-- Main headline -->
+      <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl font-semibold text-ivory leading-tight max-w-3xl">
+        Big Piano<br/>
+        <span class="italic text-gold">Small Piano</span>
+      </h1>
+
+      <p class="text-ivory/60 text-base sm:text-lg max-w-xl leading-relaxed">
+        Piano covers, tutorials and free sheet music. Every video archived here
+        — search by song, browse by date, download scores.
+      </p>
+
+      <!-- CTA row -->
+      <div class="flex flex-wrap items-center justify-center gap-3 mt-2">
+        <a
+          href={channelUrl}
+          target="_blank" rel="noopener noreferrer"
+          class="btn-gold"
+        >
+          Subscribe on YouTube ↗
+        </a>
+        <a href="/scores" class="btn-outline">
+          Free Piano Scores
+        </a>
+      </div>
+
+      <!-- Stats row -->
+      <div class="flex items-center gap-8 pt-4 border-t border-surface-border/60 mt-2">
+        <div class="text-center">
+          <p class="font-display text-2xl font-semibold text-ivory">{totalVideos}</p>
+          <p class="text-ivory/40 text-xs uppercase tracking-widest mt-0.5">Videos</p>
+        </div>
+        <div class="w-px h-8 bg-surface-border"></div>
+        <div class="text-center">
+          <p class="font-display text-2xl font-semibold text-gold">Free</p>
+          <p class="text-ivory/40 text-xs uppercase tracking-widest mt-0.5">Sheet Music</p>
+        </div>
+        <div class="w-px h-8 bg-surface-border"></div>
+        <div class="text-center">
+          <p class="font-display text-2xl font-semibold text-ivory">YT</p>
+          <p class="text-ivory/40 text-xs uppercase tracking-widest mt-0.5">Channel</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ FEATURED (latest video) ════════════════════════ -->
+  {latestVideo && (
+    <section class="max-w-6xl mx-auto px-4 sm:px-6 py-12">
+      <p class="text-gold text-xs tracking-[0.2em] uppercase font-mono mb-5">Latest release</p>
+
+      <a
+        href={`/videos/${latestVideo.slug}`}
+        class="group grid sm:grid-cols-[1fr_auto] gap-6 items-center bg-surface rounded-xl border border-surface-border p-5 sm:p-6 hover:border-gold/40 transition-all duration-300 hover:shadow-gold-glow"
+      >
+        <div class="space-y-2">
+          <h2 class="font-display text-2xl sm:text-3xl font-semibold text-ivory group-hover:text-gold transition-colors leading-snug">
+            {latestVideo.title}
+          </h2>
+          <p class="text-ivory/50 text-sm">{formatDate(latestVideo.publishedAt)}</p>
+          <p class="text-ivory/60 text-sm line-clamp-2 max-w-xl leading-relaxed">
+            {latestVideo.description.slice(0, 180)}…
+          </p>
+          <span class="inline-block mt-1 text-gold text-sm font-medium group-hover:underline">
+            Watch &amp; read more →
+          </span>
+        </div>
+        {latestVideo.thumbnail && (
+          <img
+            src={latestVideo.thumbnail}
+            alt={latestVideo.title}
+            width="320" height="180"
+            class="w-full sm:w-72 aspect-video object-cover rounded-lg border border-surface-border group-hover:border-gold/30 transition-colors"
+            loading="eager"
+          />
+        )}
+      </a>
+    </section>
+  )}
+
+  <hr class="gold-rule max-w-6xl mx-auto" />
+
+  <!-- ═══════════════════════ SEARCH + VIDEO GRID ════════════════════════════ -->
+  <section class="max-w-6xl mx-auto px-4 sm:px-6 py-12" id="videos">
+
+    <!-- Section header + search -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      <div>
+        <p class="text-gold text-xs tracking-[0.2em] uppercase font-mono mb-1">Archive</p>
+        <h2 class="font-display text-2xl sm:text-3xl font-semibold text-ivory">All Videos</h2>
+      </div>
+
+      <!-- Search bar -->
+      <div class="relative w-full sm:w-72">
+        <svg
+          class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ivory/30 pointer-events-none"
+          fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+        >
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input
+          id="search-input"
+          type="search"
+          placeholder="Search songs…"
+          aria-label="Search videos"
+          autocomplete="off"
+          class="w-full bg-surface border border-surface-border rounded-lg pl-9 pr-4 py-2.5 text-sm text-ivory placeholder-ivory/30 focus:outline-none focus:border-gold/60 transition-colors"
+        />
+      </div>
+    </div>
+
+    <!-- No-results message (hidden by default) -->
+    <p id="no-results" class="hidden text-center py-16 text-ivory/40 text-sm font-display italic text-lg">
+      No videos found for that search.
+    </p>
+
+    <!-- Video grid -->
+    <div id="video-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      {videos.map((video, i) => (
+        <article
+          class="reveal video-card group bg-surface rounded-xl border border-surface-border overflow-hidden hover:border-gold/40 transition-all duration-300 hover:shadow-card hover:-translate-y-0.5 flex flex-col"
+          style={`animation-delay: ${Math.min(i, 11) * 60}ms`}
+          data-title={video.title.toLowerCase()}
+        >
+          <!-- Thumbnail -->
+          <a href={`/videos/${video.slug}`} class="block overflow-hidden aspect-video bg-surface-raised flex-shrink-0">
+            {video.thumbnail ? (
+              <img
+                src={video.thumbnail}
+                alt={video.title}
+                width="480" height="270"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                loading={i < 6 ? "eager" : "lazy"}
+              />
+            ) : (
+              <div class="w-full h-full flex items-center justify-center text-gold/20">
+                <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>
+                </svg>
+              </div>
+            )}
+            {video.duration && (
+              <span class="absolute bottom-2 right-2 bg-ebony/90 text-ivory/80 text-xs font-mono px-1.5 py-0.5 rounded">
+                {formatDuration(video.duration)}
+              </span>
+            )}
+          </a>
+
+          <!-- Card body -->
+          <div class="p-4 flex flex-col flex-1 gap-2">
+            <a href={`/videos/${video.slug}`} class="font-display font-semibold text-ivory group-hover:text-gold transition-colors leading-snug line-clamp-2">
+              {video.title}
+            </a>
+            <p class="text-ivory/40 text-xs mt-auto">{formatDate(video.publishedAt)}</p>
+            {video.viewCount > 0 && (
+              <p class="text-ivory/30 text-xs">{formatViews(video.viewCount)} views</p>
+            )}
+          </div>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <!-- ══════════════════════════ CHANNEL CTA ══════════════════════════════════ -->
+  <section class="relative overflow-hidden border-t border-b border-surface-border mt-4">
+    <div class="absolute inset-0 bg-keys-pattern opacity-40 pointer-events-none"></div>
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 py-14 text-center flex flex-col items-center gap-5">
+      <p class="text-gold text-xs tracking-[0.2em] uppercase font-mono">Enjoy the music?</p>
+      <h2 class="font-display text-3xl sm:text-4xl font-semibold text-ivory">
+        Subscribe on YouTube
+      </h2>
+      <p class="text-ivory/60 max-w-md leading-relaxed text-sm sm:text-base">
+        New piano covers and tutorials every week. Hit subscribe and never
+        miss a new piece.
+      </p>
+      <a
+        href={channelUrl}
+        target="_blank" rel="noopener noreferrer"
+        class="btn-gold text-base px-8 py-3"
+      >
+        Open YouTube Channel ↗
+      </a>
+    </div>
+  </section>
+
+  <!-- ── Client-side search script ────────────────────────────────────────── -->
+  <script>
+    const input    = document.getElementById("search-input") as HTMLInputElement;
+    const grid     = document.getElementById("video-grid")!;
+    const noResult = document.getElementById("no-results")!;
+    const cards    = Array.from(grid.querySelectorAll<HTMLElement>(".video-card"));
+
+    input.addEventListener("input", () => {
+      const query = input.value.toLowerCase().trim();
+      let visible = 0;
+      cards.forEach((card) => {
+        const title  = (card.dataset.title || "");
+        const match  = !query || title.includes(query);
+        card.style.display = match ? "" : "none";
+        if (match) visible++;
+      });
+      noResult.classList.toggle("hidden", visible > 0);
+    });
+  </script>
+
+</Layout>
+
+<style>
+  .btn-gold {
+    @apply inline-flex items-center gap-2 bg-gold hover:bg-gold-dark text-ebony font-medium text-sm px-5 py-2.5 rounded-lg transition-colors duration-200;
+  }
+  .btn-outline {
+    @apply inline-flex items-center gap-2 border border-surface-border hover:border-gold/50 text-ivory/80 hover:text-gold text-sm px-5 py-2.5 rounded-lg transition-colors duration-200;
+  }
+  /* Make thumbnail wrapper relative so duration badge positions correctly */
+  .video-card a.block { position: relative; }
+</style>

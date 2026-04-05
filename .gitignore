@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+.npm
+
+# Build output
+dist/
+.astro/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+
+# Environment variables — NEVER commit your actual API key
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+.idea/
+
+# Logs
+*.log
+npm-debug.log*

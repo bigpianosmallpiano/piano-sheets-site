@@ -1,0 +1,285 @@
+---
+// src/pages/scores.astro
+// ── "Free Piano Scores" SEO landing page ─────────────────────────────────
+// Targets: "free piano sheet music", "[song] piano score PDF", etc.
+
+import Layout from "../layouts/Layout.astro";
+import scores from "../data/scores.json";
+
+const totalScores  = scores.reduce((n, s) => n + s.scoreLinks.length, 0);
+const totalSongs   = scores.length;
+
+// Build flat rows for the table (one row per link)
+const scoreRows = scores.flatMap((s) =>
+  s.scoreLinks.map((link: string, i: number) => ({
+    videoId:     s.videoId,
+    title:       s.title,
+    slug:        s.slug,
+    thumbnail:   s.thumbnail,
+    link,
+    credits:     s.credits,
+    publishedAt: s.publishedAt,
+  }))
+);
+
+// Detect link source for a friendlier label
+function linkLabel(url: string): string {
+  if (url.includes("drive.google.com")) return "Google Drive";
+  if (url.includes("musescore.com"))    return "MuseScore";
+  if (url.includes("dropbox.com"))      return "Dropbox";
+  if (url.includes("imslp.org"))        return "IMSLP";
+  if (url.includes("mediafire.com"))    return "MediaFire";
+  if (url.includes("scribd.com"))       return "Scribd";
+  if (url.includes("1drv.ms") || url.includes("sharepoint.com")) return "OneDrive";
+  if (url.endsWith(".pdf"))             return "PDF";
+  return "Download";
+}
+
+// JSON-LD for the collection page
+const jsonLd = {
+  "@context":   "https://schema.org",
+  "@type":      "CollectionPage",
+  "name":       "Free Piano Sheet Music — Big Piano Small Piano",
+  "description": `Download ${totalScores} free piano scores and sheet music arrangements from Big Piano Small Piano's YouTube channel.`,
+  "url":        "https://bigpianosmallpiano.com/scores",
+  "author": {
+    "@type": "Person",
+    "name":  "Big Piano Small Piano",
+  },
+  "hasPart": scores.slice(0, 10).map((s) => ({
+    "@type":       "MusicComposition",
+    "name":        s.title,
+    "url":         `https://bigpianosmallpiano.com/videos/${s.slug}`,
+  })),
+};
+---
+
+<Layout
+  title="Free Piano Sheet Music & Scores — Big Piano Small Piano"
+  description={`Download ${totalScores} free piano scores and sheet music from Big Piano Small Piano. Piano arrangements, transcriptions, and PDF downloads for every video.`}
+>
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+
+  <!-- ══════════════════════════ HERO ════════════════════════════════════════ -->
+  <section class="relative overflow-hidden border-b border-surface-border">
+    <div class="absolute inset-0 bg-keys-pattern opacity-50 pointer-events-none"></div>
+    <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold to-transparent"></div>
+
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 py-14 sm:py-20 text-center flex flex-col items-center gap-5">
+      <p class="text-gold text-xs tracking-[0.25em] uppercase font-mono">Sheet music archive</p>
+      <h1 class="font-display text-4xl sm:text-5xl font-semibold text-ivory leading-tight">
+        Free Piano <span class="italic text-gold">Sheet Music</span>
+      </h1>
+      <p class="text-ivory/60 max-w-xl text-sm sm:text-base leading-relaxed">
+        Every piano score and arrangement from the Big Piano Small Piano YouTube channel —
+        free to download. Filter by song title to find what you're looking for.
+      </p>
+
+      <!-- Stats -->
+      <div class="flex items-center gap-8 pt-4 border-t border-surface-border/60">
+        <div class="text-center">
+          <p class="font-display text-2xl font-semibold text-gold">{totalScores}</p>
+          <p class="text-ivory/40 text-xs uppercase tracking-widest mt-0.5">Scores</p>
+        </div>
+        <div class="w-px h-8 bg-surface-border"></div>
+        <div class="text-center">
+          <p class="font-display text-2xl font-semibold text-ivory">{totalSongs}</p>
+          <p class="text-ivory/40 text-xs uppercase tracking-widest mt-0.5">Songs</p>
+        </div>
+        <div class="w-px h-8 bg-surface-border"></div>
+        <div class="text-center">
+          <p class="font-display text-2xl font-semibold text-ivory">Free</p>
+          <p class="text-ivory/40 text-xs uppercase tracking-widest mt-0.5">Always</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════ SCORES TABLE ════════════════════════════════════ -->
+  <section class="max-w-6xl mx-auto px-4 sm:px-6 py-12">
+
+    <!-- Search + filter bar -->
+    <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center mb-6">
+      <div class="relative flex-1">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ivory/30 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input
+          id="score-search"
+          type="search"
+          placeholder="Search by song title…"
+          aria-label="Search piano scores"
+          autocomplete="off"
+          class="w-full bg-surface border border-surface-border rounded-lg pl-9 pr-4 py-2.5 text-sm text-ivory placeholder-ivory/30 focus:outline-none focus:border-gold/60 transition-colors"
+        />
+      </div>
+      <p class="text-ivory/40 text-sm sm:text-right flex-shrink-0 self-center">
+        <span id="score-count">{scoreRows.length}</span> score{scoreRows.length !== 1 ? "s" : ""} available
+      </p>
+    </div>
+
+    <!-- Empty state -->
+    <p id="no-scores" class="hidden text-center py-16 text-ivory/40 font-display italic text-lg">
+      No scores found for that search.
+    </p>
+
+    <!-- ── Desktop table ──────────────────────────────────────────────────── -->
+    <div class="hidden md:block rounded-xl border border-surface-border overflow-hidden">
+      <table class="w-full text-sm" id="scores-table">
+        <thead>
+          <tr class="bg-surface-raised border-b border-surface-border">
+            <th class="text-left px-5 py-3 text-ivory/50 font-medium tracking-wide text-xs uppercase w-full">Song Title</th>
+            <th class="text-left px-5 py-3 text-ivory/50 font-medium tracking-wide text-xs uppercase whitespace-nowrap">Score Credit</th>
+            <th class="text-left px-5 py-3 text-ivory/50 font-medium tracking-wide text-xs uppercase whitespace-nowrap">Source</th>
+            <th class="text-left px-5 py-3 text-ivory/50 font-medium tracking-wide text-xs uppercase whitespace-nowrap">Download</th>
+          </tr>
+        </thead>
+        <tbody id="scores-tbody">
+          {scoreRows.map((row, i) => (
+            <tr
+              class="score-row border-b border-surface-border/50 hover:bg-surface-raised/60 transition-colors"
+              data-title={row.title.toLowerCase()}
+            >
+              <!-- Song title -->
+              <td class="px-5 py-3.5">
+                <a
+                  href={`/videos/${row.slug}`}
+                  class="font-display text-ivory/90 hover:text-gold transition-colors leading-snug"
+                >
+                  {row.title}
+                </a>
+              </td>
+              <!-- Credit -->
+              <td class="px-5 py-3.5 text-ivory/50 whitespace-nowrap">
+                {row.credits && row.credits[0] ? row.credits[0] : "—"}
+              </td>
+              <!-- Source label -->
+              <td class="px-5 py-3.5">
+                <span class="inline-block bg-gold-subtle border border-gold/20 text-gold text-xs px-2 py-0.5 rounded font-mono">
+                  {linkLabel(row.link)}
+                </span>
+              </td>
+              <!-- Download link -->
+              <td class="px-5 py-3.5">
+                <a
+                  href={row.link}
+                  target="_blank" rel="noopener noreferrer"
+                  class="inline-flex items-center gap-1.5 text-gold hover:text-gold-light transition-colors font-medium whitespace-nowrap"
+                  aria-label={`Download piano score for ${row.title}`}
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                  </svg>
+                  Download
+                </a>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── Mobile cards (same data, card layout) ─────────────────────────── -->
+    <div class="md:hidden space-y-3" id="scores-cards">
+      {scoreRows.map((row) => (
+        <div
+          class="score-card bg-surface border border-surface-border rounded-xl p-4 space-y-2"
+          data-title={row.title.toLowerCase()}
+        >
+          <a href={`/videos/${row.slug}`} class="font-display text-ivory/90 hover:text-gold transition-colors leading-snug block">
+            {row.title}
+          </a>
+          {row.credits && row.credits[0] && (
+            <p class="text-ivory/50 text-xs">Arranged by {row.credits[0]}</p>
+          )}
+          <div class="flex items-center justify-between pt-1">
+            <span class="inline-block bg-gold-subtle border border-gold/20 text-gold text-xs px-2 py-0.5 rounded font-mono">
+              {linkLabel(row.link)}
+            </span>
+            <a
+              href={row.link}
+              target="_blank" rel="noopener noreferrer"
+              class="text-gold text-sm font-medium hover:text-gold-light transition-colors"
+            >
+              Download ↗
+            </a>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <!-- No scores fallback if Python found none -->
+    {scoreRows.length === 0 && (
+      <div class="text-center py-20">
+        <p class="font-display italic text-2xl text-ivory/30 mb-3">No scores found yet.</p>
+        <p class="text-ivory/40 text-sm max-w-sm mx-auto">
+          Run the Python sync script after adding score links to your YouTube descriptions —
+          they'll appear here automatically.
+        </p>
+      </div>
+    )}
+  </section>
+
+  <!-- ══════════════════════════════ CTA ═════════════════════════════════════ -->
+  <section class="relative border-t border-surface-border mt-4">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-12 text-center flex flex-col items-center gap-4">
+      <h2 class="font-display text-2xl sm:text-3xl font-semibold text-ivory">
+        Want more? Watch on YouTube.
+      </h2>
+      <p class="text-ivory/50 text-sm max-w-md">
+        Every score here comes from a full performance video. Click any song title
+        to watch the video, or browse the full channel below.
+      </p>
+      <div class="flex flex-wrap gap-3 justify-center mt-1">
+        <a
+          href="https://www.youtube.com/channel/UCsKtOGplqKz3uGt9XD8VexQ"
+          target="_blank" rel="noopener noreferrer"
+          class="btn-gold"
+        >
+          YouTube Channel ↗
+        </a>
+        <a href="/" class="btn-outline">Browse All Videos</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Search script ─────────────────────────────────────────────────────── -->
+  <script>
+    const searchEl   = document.getElementById("score-search") as HTMLInputElement;
+    const countEl    = document.getElementById("score-count")!;
+    const noScoreEl  = document.getElementById("no-scores")!;
+
+    const tableRows  = Array.from(document.querySelectorAll<HTMLElement>(".score-row"));
+    const mobileCards = Array.from(document.querySelectorAll<HTMLElement>(".score-card"));
+
+    searchEl.addEventListener("input", () => {
+      const q = searchEl.value.toLowerCase().trim();
+      let visible = 0;
+
+      const filterEl = (el: HTMLElement) => {
+        const match = !q || (el.dataset.title || "").includes(q);
+        el.style.display = match ? "" : "none";
+        if (match) visible++;
+      };
+
+      tableRows.forEach(filterEl);
+      mobileCards.forEach(filterEl);
+
+      // Deduplicate the count (table + mobile are the same rows)
+      const realVisible = Math.max(tableRows.filter(r => r.style.display !== "none").length,
+                                   mobileCards.filter(r => r.style.display !== "none").length);
+      countEl.textContent = String(realVisible);
+      noScoreEl.classList.toggle("hidden", realVisible > 0);
+    });
+  </script>
+
+</Layout>
+
+<style>
+  .btn-gold {
+    @apply inline-flex items-center gap-2 bg-gold hover:bg-gold-dark text-ebony font-medium text-sm px-5 py-2.5 rounded-lg transition-colors duration-200;
+  }
+  .btn-outline {
+    @apply inline-flex items-center gap-2 border border-surface-border hover:border-gold/50 text-ivory/80 hover:text-gold text-sm px-5 py-2.5 rounded-lg transition-colors duration-200;
+  }
+</style>
