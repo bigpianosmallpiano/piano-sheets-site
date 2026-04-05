@@ -193,34 +193,85 @@ def extract_score_links(description: str) -> list[str]:
 
 
 # Map shorthand names to full correct credits
-NAME_CORRECTIONS = {
-    "animuz":           "AnimuzAnimePiano",
-    "chaconne":         "ChaconneScott",
-    "chacon":           "ChaconneScott",
-    "chewie":           "ChewieMelodies",
-    "waragon":          "WaragonSom",
-    "starrycosmos":     "StarryCosmoss-Piano",
-    "starrycosmos-piano": "StarryCosmoss-Piano",
-    "wangzichen962":    "wangzichen962",
-    "haoyiwang":        "Haoyi Wang",
-    "marupiano":        "MaruPiano",
+Good fix — we need two things: a blocklist to prevent your own name appearing as credit, and a fallback that detects the link source instead.
+
+Replace the entire extract_credits function and add a new get_credit_fallback function in fetch_and_parse.py:
+Find and replace everything from NAME_CORRECTIONS = { down to the end of extract_credits, with this:
+python# Your own channel names — never show these as credits
+SELF_NAMES = {
+    "bigpianosmallpiano", "big piano small piano", "bigpiano",
+    "bigpianosmallpiano", "piano small piano", "small piano",
 }
 
-def extract_credits(description: str) -> list[str]:
+# Your own video that you arranged yourself
+SELF_ARRANGED_SLUGS = {
+    "genshin-ost-pensees-tranquilles-secret-summer-paradise-soothing-bgm-piano-cover-piano-sheet"
+}
+
+# Map shorthand names to full correct credits
+NAME_CORRECTIONS = {
+    "animuz":               "AnimuzAnimePiano",
+    "chaconne":             "ChaconneScott",
+    "chacon":               "ChaconneScott",
+    "chewie":               "ChewieMelodies",
+    "waragon":              "WaragonSom",
+    "starrycosmos":         "StarryCosmoss-Piano",
+    "starrycosmos-piano":   "StarryCosmoss-Piano",
+    "wangzichen962":        "wangzichen962",
+    "haoyiwang":            "Haoyi Wang",
+    "marupiano":            "MaruPiano",
+}
+
+def get_credit_fallback(links: list[str]) -> str:
+    """If no valid credit found, infer source from the download link."""
+    for link in links:
+        if "musescore.com"    in link: return "MuseScore"
+        if "drive.google.com" in link: return "Google Drive"
+        if "gumroad.com"      in link: return "Gumroad"
+        if "dropbox.com"      in link: return "Dropbox"
+        if "patreon.com"      in link: return "Patreon"
+        if "mediafire.com"    in link: return "MediaFire"
+        if ".pdf"             in link: return "PDF Download"
+    return ""
+
+def extract_credits(description: str, slug: str = "", links: list = []) -> list[str]:
     """Return list of attribution strings found in a description."""
+    # Your own self-arranged piece — credit yourself
+    if slug in SELF_ARRANGED_SLUGS:
+        return ["Big Piano Small Piano"]
+
     found = []
     for pattern in CREDIT_PATTERNS:
         matches = re.findall(pattern, description, re.IGNORECASE)
         for m in matches:
-            credit = m.strip().rstrip(".,;")
-            if 2 < len(credit) < 100:
+            # Handle multiple @names captured in one group
+            raw_names = re.findall(r"@?([\w-]+)", m)
+            for raw in raw_names:
+                credit = raw.strip().rstrip(".,;")
+                if len(credit) < 2 or len(credit) > 100:
+                    continue
+                # Skip if it's your own name
+                if credit.lower() in SELF_NAMES:
+                    continue
+                # Apply name corrections
                 corrected = NAME_CORRECTIONS.get(
                     credit,
                     NAME_CORRECTIONS.get(credit.lower(), credit)
                 )
+                # Skip corrected result if still your own name
+                if corrected.lower() in SELF_NAMES:
+                    continue
                 found.append(corrected)
-    return list(dict.fromkeys(found))
 
+    result = list(dict.fromkeys(found))
+
+    # If nothing found, fall back to link source label
+    if not result and links:
+        fallback = get_credit_fallback(links)
+        if fallback:
+            result = [fallback]
+
+    return result
 
 def parse_scores(videos: list[dict]) -> list[dict]:
     """Build the scores list from all video descriptions."""
