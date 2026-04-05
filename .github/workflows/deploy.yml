@@ -67,7 +67,7 @@ jobs:
           publish-dir: ./dist
           production-branch: main
           production-deploy: true
-          deploy-message: "Auto-deploy ${{ github.sha }}"
+          deploy-message: "Auto-deploy"
           enable-commit-comment: false
           enable-pull-request-comment: false
         env:
