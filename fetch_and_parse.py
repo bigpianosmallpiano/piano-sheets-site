@@ -52,7 +52,7 @@ CREDIT_PATTERNS = [
     # "Piano Sheet from @AnimuzAnimePiano"
     r"piano\s+sheet\s+from\s+@?([\w-]+)",
     # "(Credits to @StarryCosmoss-Piano)" or "(Credits: Animuz)"
-    r"\(credits?(?:\s+to)?\s+@?([\w-]+)(?:\s+for[^)]+)?\)",
+    r"\(credits?(?:\s+to)?\s+@?([\w][\w\s-]+?)(?:\s+for[^)]+)?\)",
     # "obtained via @ChewieMelodies"
     r"(?:obtained\s+)?via\s+@?([\w-]+)(?:'s)?",
     # "Arranged by:", "Score by:", "Transcribed by:"
