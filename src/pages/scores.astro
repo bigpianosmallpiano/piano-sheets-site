@@ -25,6 +25,7 @@ const scoreRows = scores.flatMap((s) =>
 // Detect link source for a friendlier label
 function linkLabel(url: string): string {
   if (url.includes("drive.google.com")) return "Google Drive";
+  if (url.includes("gumroad.com")) return "Gumroad";
   if (url.includes("musescore.com"))    return "MuseScore";
   if (url.includes("dropbox.com"))      return "Dropbox";
   if (url.includes("imslp.org"))        return "IMSLP";
