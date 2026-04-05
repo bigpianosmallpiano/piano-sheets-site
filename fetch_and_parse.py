@@ -49,6 +49,10 @@ SCORE_LINK_PATTERNS = [
 CREDIT_PATTERNS = [
     # "Piano Sheet from @AnimuzAnimePiano"
     r"piano\s+sheet\s+from\s+@?([\w\s]+?)(?:\n|$|https?://|\s{2,})",
+    # "(Credits to Animuz for the sheet...)" or "(Credits: Animuz)"
+    r"\(credits?(?:\s+to)?\s+@?([\w]+)(?:\s+for[^)]+)?\)",
+    # "Piano Score @XXXXXX"  
+    r"piano\s+(?:score|sheet)\s+@([\w]+)",
     # "Piano Score @XXXXXX" or "Piano Sheet @XXXXXX"
     r"piano\s+(?:score|sheet)\s+@([\w]+)",
     # "Piano Sheet (Credits to @WaragonSom)"
@@ -192,6 +196,15 @@ def extract_score_links(description: str) -> list[str]:
     return list(dict.fromkeys(cleaned))   # deduplicate, preserve order
 
 
+# Map shorthand names to full correct credits
+NAME_CORRECTIONS = {
+    "animuz":   "AnimuzAnimePiano",
+    "chaconne": "ChaconneScott",
+    "chacon":   "ChaconneScott",
+    "chewie":   "ChewieMelodies",
+    "waragon":  "WaragonSom",
+}
+
 def extract_credits(description: str) -> list[str]:
     """Return list of attribution strings found in a description."""
     found = []
@@ -199,10 +212,12 @@ def extract_credits(description: str) -> list[str]:
         matches = re.findall(pattern, description, re.IGNORECASE)
         for m in matches:
             credit = m.strip().rstrip(".,;")
-            # Skip very short (noise) or very long (grabbed the whole paragraph)
             if 2 < len(credit) < 100:
-                found.append(credit)
-
+                corrected = NAME_CORRECTIONS.get(
+                    credit,
+                    NAME_CORRECTIONS.get(credit.lower(), credit)
+                )
+                found.append(corrected)
     return list(dict.fromkeys(found))
 
 
