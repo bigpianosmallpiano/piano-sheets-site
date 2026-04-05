@@ -1,33 +1,14 @@
-# .github/workflows/deploy.yml
-# ─────────────────────────────────────────────────────────────────────────────
-# Big Piano Small Piano — Daily YouTube Sync & Deploy
-#
-# Triggers:
-#   1. Scheduled: every day at 06:00 UTC (picks up new videos within 24h)
-#   2. Manual: "Run workflow" button in GitHub Actions tab
-#   3. Push to main: full rebuild on every code change
-#
-# Secrets required (add in GitHub → Settings → Secrets and variables → Actions):
-#   YT_API_KEY           – Your YouTube Data API v3 key
-#   NETLIFY_AUTH_TOKEN   – Netlify personal access token (netlify.com → User settings → Applications)
-#   NETLIFY_SITE_ID      – Found in Netlify → Site settings → General → Site ID
-# ─────────────────────────────────────────────────────────────────────────────
-
 name: Daily YouTube Sync & Deploy
 
 on:
   schedule:
-    - cron: "0 6 * * *"        # 06:00 UTC every day
-
-  workflow_dispatch:             # manual trigger in GitHub UI
-
+    - cron: "0 6 * * *"
+  workflow_dispatch:
   push:
     branches: [main]
-    paths-ignore:                # skip if only docs changed
+    paths-ignore:
       - "**.md"
-      - ".gitignore"
 
-# Cancel in-progress runs if a newer run is triggered
 concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: true
@@ -39,51 +20,40 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      # ── 1. Checkout ─────────────────────────────────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── 2. Python setup ─────────────────────────────────────────────────────
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          
 
       - name: Install Python dependencies
         run: pip install requests
 
-      # ── 3. Fetch YouTube data ────────────────────────────────────────────────
       - name: Sync YouTube videos and parse scores
         env:
           YT_API_KEY: ${{ secrets.YT_API_KEY }}
         run: python fetch_and_parse.py
 
-      # ── 4. Node / Astro setup ────────────────────────────────────────────────
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: npm
 
       - name: Install Node dependencies
         run: npm install
 
-      # ── 5. Build Astro site ──────────────────────────────────────────────────
       - name: Build Astro site
         run: npm run build
         env:
           NODE_ENV: production
 
-      # ── 6. Commit updated data files (so history is tracked in Git) ──────────
       - name: Commit updated data files
         run: |
           git config user.name  "GitHub Actions Bot"
           git config user.email "bot@users.noreply.github.com"
           git add src/data/
-          # Only commit if there are actual changes
           if git diff --staged --quiet; then
             echo "No data changes — skipping commit."
           else
@@ -91,30 +61,14 @@ jobs:
             git push
           fi
 
-      # ── 7. Deploy to Netlify ─────────────────────────────────────────────────
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v3.0
         with:
-          publish-dir:     ./dist
+          publish-dir: ./dist
           production-branch: main
           production-deploy: true
-          deploy-message:  "Auto-deploy: ${{ github.event_name }} at ${{ github.sha }}"
+          deploy-message: "Auto-deploy ${{ github.sha }}"
           enable-commit-comment: false
           enable-pull-request-comment: false
         env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID:    ${{ secrets.NETLIFY_SITE_ID }}
-        timeout-minutes: 10
-
-      # ── 8. Notify on failure (optional — uncomment + add EMAIL secret) ───────
-      # - name: Notify on failure
-      #   if: failure()
-      #   uses: dawidd6/action-send-mail@v3
-      #   with:
-      #     server_address: smtp.gmail.com
-      #     server_port:    465
-      #     username:       ${{ secrets.EMAIL_USER }}
-      #     password:       ${{ secrets.EMAIL_PASS }}
-      #     subject:        "Big Piano site deploy FAILED"
-      #     body:           "Check GitHub Actions: ${{ github.server_url }}/${{ github.repository }}/actions"
-      #     to:             ${{ secrets.EMAIL_USER }}
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_T
