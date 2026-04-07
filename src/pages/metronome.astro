@@ -1,0 +1,473 @@
+---
+// src/pages/metronome.astro
+import Layout from "../layouts/Layout.astro";
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Free Online Metronome — Big Piano Small Piano",
+  "description": "Free online metronome for piano practice. Bookmark with your exact BPM and time signature — auto-plays on open. Tap rhythm mode included.",
+  "url": "https://bigpianosmallpiano.pages.dev/metronome",
+  "applicationCategory": "MusicApplication",
+  "operatingSystem": "Any",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+};
+---
+
+<Layout
+  title="Free Online Metronome — Big Piano Small Piano"
+  description="Free online metronome for piano. Bookmark with your BPM and time signature — auto-plays on open. Tap rhythm mode. No ads, no sign-up."
+>
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+
+  <!-- HERO -->
+  <section class="relative overflow-hidden border-b border-surface-border">
+    <div class="absolute inset-0 bg-keys-pattern opacity-50 pointer-events-none"></div>
+    <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold to-transparent"></div>
+    <div class="relative max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12 text-center flex flex-col items-center gap-2">
+      <p class="text-gold text-xs tracking-[0.25em] uppercase font-mono">Practice tool</p>
+      <h1 class="font-display text-4xl sm:text-5xl font-semibold text-ivory leading-tight">
+        Free Online <span class="italic text-gold">Metronome</span>
+      </h1>
+      <p class="text-ivory/50 text-sm max-w-md leading-relaxed">
+        Set your tempo and bookmark the page — it remembers your settings and auto-plays next time.
+      </p>
+    </div>
+  </section>
+
+  <!-- MODE SWITCHER -->
+  <div class="max-w-2xl mx-auto px-4 sm:px-6 pt-8">
+    <div class="flex rounded-xl border border-surface-border overflow-hidden">
+      <button id="mode-metro" class="flex-1 py-3 text-sm font-medium transition-all bg-gold text-ebony">
+        ♩ Metronome
+      </button>
+      <button id="mode-tap" class="flex-1 py-3 text-sm font-medium transition-all text-ivory/50 hover:text-ivory">
+        ✦ Tap Rhythm
+      </button>
+    </div>
+  </div>
+
+  <!-- METRONOME PANEL -->
+  <section id="metro-panel" class="max-w-2xl mx-auto px-4 sm:px-6 py-8 space-y-4">
+    <div class="bg-surface border border-surface-border rounded-2xl p-6 sm:p-8 space-y-6">
+
+      <!-- BPM display -->
+      <div class="text-center space-y-1">
+        <p class="text-ivory/40 text-xs uppercase tracking-widest font-mono">Tempo</p>
+        <div class="flex items-center justify-center gap-4">
+          <button id="bpm-minus" class="w-12 h-12 rounded-full border border-surface-border text-ivory/60 hover:text-gold hover:border-gold/50 transition-all text-2xl flex items-center justify-center select-none">−</button>
+          <div class="text-center min-w-[140px]">
+            <span id="bpm-display" class="font-display text-8xl font-semibold text-ivory leading-none tabular-nums">72</span>
+          </div>
+          <button id="bpm-plus" class="w-12 h-12 rounded-full border border-surface-border text-ivory/60 hover:text-gold hover:border-gold/50 transition-all text-2xl flex items-center justify-center select-none">+</button>
+        </div>
+        <p id="tempo-name" class="text-gold font-display italic text-xl">Adagio</p>
+        <p class="text-ivory/30 text-xs font-mono">beats per minute</p>
+      </div>
+
+      <!-- Slider -->
+      <div class="space-y-1">
+        <input id="bpm-slider" type="range" min="20" max="220" value="72" step="1" class="w-full accent-gold cursor-pointer" />
+        <div class="flex justify-between text-xs text-ivory/20 font-mono px-0.5">
+          <span>20</span><span>60</span><span>120</span><span>180</span><span>220</span>
+        </div>
+      </div>
+
+      <!-- Beat dots -->
+      <div id="beat-dots" class="flex items-center justify-center gap-3 py-2"></div>
+
+      <!-- Time signature -->
+      <div class="space-y-3">
+        <p class="text-ivory/40 text-xs uppercase tracking-widest font-mono text-center">Beats per bar</p>
+        <div class="flex items-center justify-center gap-2">
+          {[2,3,4,5,6,7,8].map(n => (
+            <button data-beats={n}
+              class={`time-sig-btn w-10 h-10 rounded-lg border text-sm font-mono transition-all
+                ${n === 4 ? 'border-gold bg-gold/10 text-gold' : 'border-surface-border text-ivory/40 hover:border-gold/40 hover:text-ivory/80'}`}>
+              {n}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <!-- Tap + volume -->
+      <div class="flex items-center gap-3">
+        <button id="tap-btn" class="flex items-center gap-2 border border-surface-border hover:border-gold/50 text-ivory/60 hover:text-gold px-4 py-2.5 rounded-xl transition-all text-sm font-medium flex-shrink-0">
+          Tap BPM
+        </button>
+        <input id="volume-slider" type="range" min="0" max="100" value="80" step="1" class="flex-1 accent-gold cursor-pointer" />
+        <span class="text-ivory/30 text-xs font-mono w-8 text-right" id="vol-label">80%</span>
+      </div>
+
+      <!-- Start / Stop -->
+      <button id="start-stop" class="w-full flex items-center justify-center gap-3 bg-gold hover:bg-gold-dark text-ebony font-semibold py-4 rounded-xl transition-colors text-lg">
+        <svg id="play-icon" class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        <svg id="stop-icon" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+        <span id="start-label">Start</span>
+      </button>
+
+      <!-- Bookmark hint -->
+      <div class="flex items-start gap-2 bg-gold/5 border border-gold/20 rounded-xl px-4 py-3">
+        <span class="text-gold text-base flex-shrink-0 mt-0.5">🔖</span>
+        <p class="text-ivory/50 text-xs leading-relaxed">
+          <strong class="text-ivory/70">Bookmark this page</strong> after setting your BPM and beats.
+          The URL saves your settings — next time you open the bookmark it auto-plays immediately.
+        </p>
+      </div>
+    </div>
+
+    <!-- Tempo presets -->
+    <div class="bg-surface border border-surface-border rounded-xl p-5">
+      <p class="text-ivory/40 text-xs uppercase tracking-widest font-mono mb-4">Quick tempo</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {[
+          { name:"Largo",      bpm:48  },
+          { name:"Adagio",     bpm:63  },
+          { name:"Andante",    bpm:76  },
+          { name:"Moderato",   bpm:92  },
+          { name:"Allegretto", bpm:104 },
+          { name:"Allegro",    bpm:120 },
+          { name:"Vivace",     bpm:136 },
+          { name:"Presto",     bpm:160 },
+        ].map(t => (
+          <button data-bpm={t.bpm} class="tempo-preset text-left px-3 py-2 rounded-lg border border-surface-border hover:border-gold/50 hover:bg-gold/5 transition-all group">
+            <span class="font-display text-ivory/80 group-hover:text-gold text-sm block transition-colors">{t.name}</span>
+            <span class="text-ivory/30 text-xs font-mono">{t.bpm} BPM</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- TAP RHYTHM PANEL -->
+  <section id="tap-panel" class="hidden max-w-2xl mx-auto px-4 sm:px-6 py-8 space-y-4">
+    <div class="bg-surface border border-surface-border rounded-2xl p-6 sm:p-8 space-y-6">
+
+      <div class="text-center space-y-2">
+        <p class="text-ivory/40 text-xs uppercase tracking-widest font-mono">Tap your rhythm</p>
+        <p class="text-ivory/50 text-sm max-w-sm mx-auto">
+          Tap the button (or press <kbd class="bg-surface-raised px-1.5 py-0.5 rounded text-xs font-mono text-ivory/60">Space</kbd>) to record. It loops back to you.
+        </p>
+      </div>
+
+      <!-- Big tap button -->
+      <button id="tap-rhythm-btn"
+        class="w-full h-48 rounded-2xl border-2 border-surface-border hover:border-gold/50 flex flex-col items-center justify-center gap-3 transition-all active:scale-95 active:border-gold text-ivory/40 hover:text-ivory/60 cursor-pointer select-none group">
+        <div class="w-16 h-16 rounded-full border-2 border-current flex items-center justify-center group-active:bg-gold/20 transition-all">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0 1 21.485 12 59.77 59.77 0 0 1 3.27 20.876L5.999 12zm0 0h7.5"/>
+          </svg>
+        </div>
+        <span class="font-display text-lg italic" id="tap-instruction">Tap to start recording</span>
+        <span class="text-xs font-mono text-ivory/30" id="tap-count"></span>
+      </button>
+
+      <!-- Rhythm bars visualizer -->
+      <div id="rhythm-viz" class="min-h-16 flex items-end justify-center gap-1.5 flex-wrap"></div>
+
+      <!-- Detected BPM -->
+      <div id="tap-bpm-display" class="text-center hidden">
+        <p class="text-ivory/40 text-xs uppercase tracking-widest font-mono mb-1">Detected tempo</p>
+        <p class="font-display text-5xl font-semibold text-gold" id="tap-bpm-num">—</p>
+        <p class="text-ivory/30 text-xs font-mono">BPM</p>
+      </div>
+
+      <!-- Controls -->
+      <div class="flex gap-3">
+        <button id="tap-play-stop"
+          class="flex-1 flex items-center justify-center gap-2 bg-gold hover:bg-gold-dark text-ebony font-semibold py-3.5 rounded-xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          disabled>
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <span id="tap-play-label">Play rhythm</span>
+        </button>
+        <button id="tap-clear" class="px-5 py-3.5 rounded-xl border border-surface-border text-ivory/50 hover:text-gold hover:border-gold/50 transition-all text-sm font-medium">
+          Clear
+        </button>
+      </div>
+
+      <p class="text-ivory/30 text-xs text-center leading-relaxed">
+        Tip: tap out a melody's rhythm to loop it as a practice guide
+      </p>
+    </div>
+  </section>
+
+  <!-- SCRIPT -->
+  <script>
+  (function() {
+    const TEMPOS = [
+      {name:"Larghissimo",min:0,  max:24 },{name:"Grave",      min:25, max:45 },
+      {name:"Largo",      min:46, max:50 },{name:"Lento",      min:51, max:54 },
+      {name:"Adagio",     min:55, max:68 },{name:"Adagietto",  min:69, max:72 },
+      {name:"Andante",    min:73, max:77 },{name:"Andantino",  min:78, max:83 },
+      {name:"Moderato",   min:84, max:96 },{name:"Allegretto", min:97, max:109},
+      {name:"Allegro",    min:110,max:132},{name:"Vivace",     min:133,max:140},
+      {name:"Presto",     min:141,max:177},{name:"Prestissimo",min:178,max:220},
+    ];
+    function tempoName(b) { for(const t of TEMPOS) if(b>=t.min&&b<=t.max) return t.name; return "Prestissimo"; }
+
+    // Read URL params
+    const params = new URLSearchParams(location.search);
+    let bpm    = Math.min(220,Math.max(20, parseInt(params.get("bpm")  ||"72")));
+    let beats  = Math.min(8,  Math.max(2,  parseInt(params.get("beats")||"4" )));
+    const autoplay = params.get("autoplay")==="1";
+
+    let volume=0.8, isPlaying=false, currentBeat=0, nextBeatTime=0, timerID=null;
+    let audioCtx=null, tapTimes=[];
+    let rhythmTaps=[], rhythmPlaying=false, rhythmTimerID=null;
+
+    // DOM refs
+    const $ = id => document.getElementById(id);
+    const bpmDisplay=$("bpm-display"), tempoNameEl=$("tempo-name");
+    const bpmSlider=$("bpm-slider"), bpmMinus=$("bpm-minus"), bpmPlus=$("bpm-plus");
+    const startStop=$("start-stop"), startLabel=$("start-label");
+    const playIcon=$("play-icon"), stopIcon=$("stop-icon");
+    const tapBtn=$("tap-btn"), volSlider=$("volume-slider"), volLabel=$("vol-label");
+    const beatDots=$("beat-dots");
+    const timeSigBtns=document.querySelectorAll(".time-sig-btn");
+    const tempoPresets=document.querySelectorAll(".tempo-preset");
+    const modeMetro=$("mode-metro"), modeTap=$("mode-tap");
+    const metroPanel=$("metro-panel"), tapPanel=$("tap-panel");
+    const tapRhythmBtn=$("tap-rhythm-btn"), tapInstruct=$("tap-instruction");
+    const tapCountEl=$("tap-count"), rhythmViz=$("rhythm-viz");
+    const tapBpmDisplay=$("tap-bpm-display"), tapBpmNum=$("tap-bpm-num");
+    const tapPlayStop=$("tap-play-stop"), tapPlayLabel=$("tap-play-label");
+    const tapClear=$("tap-clear");
+
+    function updateURL() {
+      const u=new URL(location.href);
+      u.searchParams.set("bpm",bpm);
+      u.searchParams.set("beats",beats);
+      u.searchParams.set("autoplay","1");
+      history.replaceState(null,"",u.toString());
+    }
+
+    function buildDots() {
+      beatDots.innerHTML="";
+      for(let i=0;i<beats;i++){
+        const d=document.createElement("div");
+        d.className="beat-dot w-6 h-6 rounded-full border-2 transition-all duration-75 "+(i===0?"border-gold":"border-surface-border");
+        d.dataset.index=i;
+        beatDots.appendChild(d);
+      }
+    }
+
+    function flashDot(idx) {
+      const d=beatDots.querySelectorAll(".beat-dot")[idx];
+      if(!d)return;
+      d.classList.add(idx===0?"bg-gold":"bg-ivory/80");
+      d.style.transform="scale(1.35)";
+      setTimeout(()=>{d.classList.remove("bg-gold","bg-ivory/80");d.style.transform="";},80);
+    }
+
+    function getCtx() {
+      if(!audioCtx) audioCtx=new AudioContext();
+      if(audioCtx.state==="suspended") audioCtx.resume();
+      return audioCtx;
+    }
+
+    function click(time, accent) {
+      const ctx=getCtx(), osc=ctx.createOscillator(), g=ctx.createGain();
+      osc.connect(g); g.connect(ctx.destination);
+      osc.frequency.value=accent?1050:820;
+      g.gain.setValueAtTime(volume*(accent?1:.65),time);
+      g.gain.exponentialRampToValueAtTime(.001,time+.08);
+      osc.start(time); osc.stop(time+.1);
+    }
+
+    function scheduler() {
+      const ctx=getCtx();
+      while(nextBeatTime<ctx.currentTime+.12){
+        click(nextBeatTime,currentBeat===0);
+        const bi=currentBeat, delay=Math.max(0,(nextBeatTime-ctx.currentTime)*1000);
+        setTimeout(()=>flashDot(bi),delay);
+        nextBeatTime+=60/bpm;
+        currentBeat=(currentBeat+1)%beats;
+      }
+    }
+
+    function startMetronome() {
+      const ctx=getCtx(); currentBeat=0; nextBeatTime=ctx.currentTime+.05;
+      timerID=setInterval(scheduler,25);
+    }
+
+    function stopMetronome() {
+      clearInterval(timerID); timerID=null;
+      beatDots.querySelectorAll(".beat-dot").forEach(d=>{d.classList.remove("bg-gold","bg-ivory/80");d.style.transform="";});
+    }
+
+    function setBPM(val) {
+      bpm=Math.min(220,Math.max(20,Math.round(val)));
+      bpmDisplay.textContent=bpm; bpmSlider.value=bpm;
+      tempoNameEl.textContent=tempoName(bpm); updateURL();
+    }
+
+    function setBeats(val) {
+      beats=val; currentBeat=0; buildDots();
+      timeSigBtns.forEach(b=>{
+        const a=Number(b.dataset.beats)===beats;
+        b.classList.toggle("border-gold",a); b.classList.toggle("bg-gold/10",a); b.classList.toggle("text-gold",a);
+        b.classList.toggle("border-surface-border",!a); b.classList.toggle("text-ivory/40",!a);
+      });
+      updateURL();
+    }
+
+    function togglePlay() {
+      isPlaying=!isPlaying;
+      if(isPlaying){
+        startMetronome();
+        startLabel.textContent="Stop";
+        playIcon.classList.add("hidden"); stopIcon.classList.remove("hidden");
+        startStop.classList.replace("bg-gold","bg-red-700");
+        startStop.classList.replace("hover:bg-gold-dark","hover:bg-red-900");
+        startStop.classList.replace("text-ebony","text-white");
+      } else {
+        stopMetronome();
+        startLabel.textContent="Start";
+        playIcon.classList.remove("hidden"); stopIcon.classList.add("hidden");
+        startStop.classList.replace("bg-red-700","bg-gold");
+        startStop.classList.replace("hover:bg-red-900","hover:bg-gold-dark");
+        startStop.classList.replace("text-white","text-ebony");
+      }
+    }
+
+    // Tap BPM
+    let tapResetTimer;
+    function doTap() {
+      const now=performance.now(); tapTimes.push(now);
+      if(tapTimes.length>8) tapTimes.shift();
+      if(tapTimes.length>=2){
+        const ivs=[];
+        for(let i=1;i<tapTimes.length;i++) ivs.push(tapTimes[i]-tapTimes[i-1]);
+        setBPM(Math.round(60000/(ivs.reduce((a,b)=>a+b,0)/ivs.length)));
+      }
+      clearTimeout(tapResetTimer);
+      tapResetTimer=setTimeout(()=>{tapTimes=[];},3000);
+    }
+
+    // Hold +/- buttons
+    let holdTimer,holdInterval;
+    [bpmMinus,bpmPlus].forEach(btn=>{
+      const dir=btn===bpmPlus?1:-1;
+      btn.addEventListener("mousedown",()=>{
+        holdTimer=setTimeout(()=>{holdInterval=setInterval(()=>setBPM(bpm+dir),80);},400);
+      });
+      ["mouseup","mouseleave"].forEach(ev=>btn.addEventListener(ev,()=>{clearTimeout(holdTimer);clearInterval(holdInterval);}));
+    });
+
+    // Tap rhythm
+    let rhythmResetTimer;
+    function drawRhythmViz() {
+      rhythmViz.innerHTML="";
+      if(rhythmTaps.length<2)return;
+      const ivs=[]; for(let i=1;i<rhythmTaps.length;i++) ivs.push(rhythmTaps[i]-rhythmTaps[i-1]);
+      const maxI=Math.max(...ivs);
+      ivs.forEach(iv=>{
+        const bar=document.createElement("div");
+        bar.className="rounded-sm bg-gold/50 w-4 self-end";
+        bar.style.height=Math.max(8,Math.round(iv/maxI*48))+"px";
+        rhythmViz.appendChild(bar);
+      });
+    }
+
+    function playRhythm() {
+      if(rhythmTaps.length<2)return;
+      rhythmPlaying=true; tapPlayLabel.textContent="Stop";
+      const ivs=[]; for(let i=1;i<rhythmTaps.length;i++) ivs.push(rhythmTaps[i]-rhythmTaps[i-1]);
+      const loopMs=ivs.reduce((a,b)=>a+b,0);
+      function scheduleLoop(){
+        const ctx=getCtx(), now=ctx.currentTime; let off=0;
+        ivs.forEach(iv=>{
+          const t=now+off/1000, osc=ctx.createOscillator(), g=ctx.createGain();
+          osc.connect(g); g.connect(ctx.destination);
+          osc.frequency.value=900;
+          g.gain.setValueAtTime(volume,t); g.gain.exponentialRampToValueAtTime(.001,t+.06);
+          osc.start(t); osc.stop(t+.07); off+=iv;
+        });
+        rhythmTimerID=setTimeout(scheduleLoop,loopMs);
+      }
+      scheduleLoop();
+    }
+
+    function stopRhythm() { rhythmPlaying=false; clearTimeout(rhythmTimerID); tapPlayLabel.textContent="Play rhythm"; }
+
+    function clearRhythm() {
+      stopRhythm(); rhythmTaps=[]; rhythmViz.innerHTML="";
+      tapBpmDisplay.classList.add("hidden"); tapPlayStop.disabled=true;
+      tapInstruct.textContent="Tap to start recording"; tapCountEl.textContent="";
+    }
+
+    // Events
+    bpmSlider.addEventListener("input",()=>setBPM(bpmSlider.value));
+    bpmMinus.addEventListener("click",()=>setBPM(bpm-1));
+    bpmPlus.addEventListener("click",()=>setBPM(bpm+1));
+    startStop.addEventListener("click",togglePlay);
+    tapBtn.addEventListener("click",doTap);
+    volSlider.addEventListener("input",()=>{volume=volSlider.value/100; volLabel.textContent=volSlider.value+"%";});
+    timeSigBtns.forEach(b=>b.addEventListener("click",()=>setBeats(Number(b.dataset.beats))));
+    tempoPresets.forEach(b=>b.addEventListener("click",()=>setBPM(Number(b.dataset.bpm))));
+
+    modeMetro.addEventListener("click",()=>{
+      metroPanel.classList.remove("hidden"); tapPanel.classList.add("hidden");
+      modeMetro.classList.add("bg-gold","text-ebony"); modeMetro.classList.remove("text-ivory/50");
+      modeTap.classList.remove("bg-gold","text-ebony"); modeTap.classList.add("text-ivory/50");
+      if(isPlaying) togglePlay();
+    });
+    modeTap.addEventListener("click",()=>{
+      tapPanel.classList.remove("hidden"); metroPanel.classList.add("hidden");
+      modeTap.classList.add("bg-gold","text-ebony"); modeTap.classList.remove("text-ivory/50");
+      modeMetro.classList.remove("bg-gold","text-ebony"); modeMetro.classList.add("text-ivory/50");
+      if(isPlaying) togglePlay();
+    });
+
+    tapRhythmBtn.addEventListener("click",()=>{
+      if(rhythmPlaying)return;
+      rhythmTaps.push(performance.now());
+      tapInstruct.textContent="Keep tapping...";
+      tapCountEl.textContent=rhythmTaps.length+" taps";
+      if(rhythmTaps.length>=2){
+        drawRhythmViz();
+        const ivs=[]; for(let i=1;i<rhythmTaps.length;i++) ivs.push(rhythmTaps[i]-rhythmTaps[i-1]);
+        tapBpmNum.textContent=Math.round(60000/(ivs.reduce((a,b)=>a+b,0)/ivs.length));
+        tapBpmDisplay.classList.remove("hidden");
+        tapPlayStop.disabled=false;
+      }
+      clearTimeout(rhythmResetTimer);
+      rhythmResetTimer=setTimeout(()=>{
+        if(rhythmTaps.length>=2){tapInstruct.textContent="Rhythm recorded ✓"; tapCountEl.textContent=rhythmTaps.length+" beats";}
+      },1500);
+    });
+
+    tapPlayStop.addEventListener("click",()=>{ if(rhythmPlaying) stopRhythm(); else playRhythm(); });
+    tapClear.addEventListener("click",clearRhythm);
+
+    document.addEventListener("keydown",e=>{
+      if(e.target instanceof HTMLInputElement)return;
+      if(e.code==="Space"){
+        e.preventDefault();
+        if(!tapPanel.classList.contains("hidden")) tapRhythmBtn.click();
+        else togglePlay();
+      }
+      if(e.code==="ArrowUp")   setBPM(bpm+1);
+      if(e.code==="ArrowDown") setBPM(bpm-1);
+    });
+
+    // Init
+    setBPM(bpm); setBeats(beats);
+
+    // Autoplay — browsers block audio without user gesture, so we listen for first interaction
+    if(autoplay){
+      const tryPlay=()=>{ if(!isPlaying) togglePlay(); };
+      setTimeout(()=>{
+        try{ togglePlay(); }
+        catch(e){
+          document.addEventListener("click",  tryPlay,{once:true});
+          document.addEventListener("keydown",tryPlay,{once:true});
+          document.addEventListener("touchstart",tryPlay,{once:true});
+        }
+      },200);
+    }
+
+  })();
+  </script>
+
+</Layout>
