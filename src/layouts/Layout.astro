@@ -1,5 +1,7 @@
 ---
 // src/layouts/Layout.astro
+import CoffeeButton from "../components/CoffeeButton.astro";
+
 export interface Props {
   title:       string;
   description: string;
@@ -16,9 +18,17 @@ const {
   noindex  = false,
 } = Astro.props;
 
-const siteUrl     = "https://bigpianosmallpiano.pages.dev";
+const siteUrl      = "https://bigpianosmallpiano.pages.dev";
 const canonicalURL = new URL(Astro.url.pathname, siteUrl).href;
 const fullTitle    = title.includes("Big Piano") ? title : `${title} | Big Piano Small Piano`;
+
+// ── Social links — update Instagram when you have it ──────────────────────
+const SOCIALS = {
+  youtube:   "https://www.youtube.com/channel/UCsKtOGplqKz3uGt9XD8VexQ",
+  tiktok:    "https://www.tiktok.com/@big.piano.small.p",
+  instagram: "",   // ← PASTE YOUR INSTAGRAM URL HERE when ready e.g. https://www.instagram.com/bigpianosmallpiano
+  coffee:    "https://www.buymeacoffee.com/bigpianosmc",
+};
 ---
 
 <!DOCTYPE html>
@@ -26,118 +36,57 @@ const fullTitle    = title.includes("Big Piano") ? title : `${title} | Big Piano
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
   <title>{fullTitle}</title>
   <meta name="description"        content={description} />
   <link rel="canonical"           href={canonicalURL} />
   {noindex && <meta name="robots" content="noindex, follow" />}
-
   <meta property="og:type"        content={type} />
   <meta property="og:url"         content={canonicalURL} />
   <meta property="og:title"       content={fullTitle} />
   <meta property="og:description" content={description} />
   <meta property="og:image"       content={image.startsWith("http") ? image : `${siteUrl}${image}`} />
   <meta property="og:site_name"   content="Big Piano Small Piano" />
-
   <meta name="twitter:card"        content="summary_large_image" />
   <meta name="twitter:title"       content={fullTitle} />
   <meta name="twitter:description" content={description} />
   <meta name="twitter:image"       content={image.startsWith("http") ? image : `${siteUrl}${image}`} />
-
   <meta name="theme-color" content="#0D0D0D" />
-
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono&display=swap"
-    rel="stylesheet"
-  />
-
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono&display=swap" rel="stylesheet" />
   <link rel="preconnect" href="https://www.youtube.com" />
-  <link rel="dns-prefetch" href="https://i.ytimg.com" />
-
   <style>
     :root { color-scheme: dark; }
     html  { background-color: #0D0D0D; }
     body  { font-family: 'DM Sans', system-ui, sans-serif; }
+    .gold-rule { border:none;height:1px;background:linear-gradient(90deg,transparent,#C9A84C 40%,#C9A84C 60%,transparent); }
+    .reveal { opacity:0;transform:translateY(16px);transition:opacity .5s ease,transform .5s ease; }
+    .reveal.visible { opacity:1;transform:none; }
 
-    .gold-rule {
-      border: none;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, #C9A84C 40%, #C9A84C 60%, transparent);
-    }
-    .reveal { opacity: 0; transform: translateY(16px); transition: opacity 0.5s ease, transform 0.5s ease; }
-    .reveal.visible { opacity: 1; transform: none; }
+    /* Social icon button */
+    .social-icon { display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.1);color:rgba(248,245,238,.4);transition:color .15s,border-color .15s,background .15s; }
+    .social-icon:hover { color:#C9A84C;border-color:rgba(201,168,76,.4);background:rgba(201,168,76,.06); }
+    .social-icon svg { width:16px;height:16px; }
 
-    /* Mobile nav drawer */
-    #mobile-drawer {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 100;
-    }
-    #mobile-drawer.open {
-      display: block;
-    }
-    #drawer-backdrop {
-      position: absolute;
-      inset: 0;
-      background: rgba(0,0,0,0.7);
-    }
-    #drawer-panel {
-      position: absolute;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      width: 72vw;
-      max-width: 280px;
-      background: #141414;
-      border-left: 1px solid #2A2A2A;
-      display: flex;
-      flex-direction: column;
-      padding: 1.5rem;
-      gap: 0.25rem;
-    }
-    .drawer-link {
-      display: block;
-      padding: 0.75rem 1rem;
-      color: rgba(248,245,238,0.7);
-      font-size: 0.95rem;
-      border-radius: 8px;
-      text-decoration: none;
-      transition: background 0.15s, color 0.15s;
-    }
-    .drawer-link:hover, .drawer-link:active {
-      background: #1C1C1C;
-      color: #C9A84C;
-    }
-    .drawer-link.gold {
-      color: #C9A84C;
-    }
-    .drawer-divider {
-      height: 1px;
-      background: #2A2A2A;
-      margin: 0.5rem 0;
-    }
-    .drawer-close {
-      align-self: flex-end;
-      background: none;
-      border: none;
-      color: rgba(248,245,238,0.4);
-      font-size: 1.5rem;
-      cursor: pointer;
-      padding: 0.25rem;
-      margin-bottom: 0.5rem;
-      line-height: 1;
-    }
+    /* Mobile nav */
+    #mobile-drawer { display:none;position:fixed;inset:0;z-index:100; }
+    #mobile-drawer.open { display:block; }
+    #drawer-backdrop { position:absolute;inset:0;background:rgba(0,0,0,.7); }
+    #drawer-panel { position:absolute;top:0;right:0;bottom:0;width:72vw;max-width:280px;background:#141414;border-left:1px solid #2A2A2A;display:flex;flex-direction:column;padding:1.5rem;gap:.25rem;overflow-y:auto; }
+    .drawer-link { display:block;padding:.75rem 1rem;color:rgba(248,245,238,.7);font-size:.95rem;border-radius:8px;text-decoration:none;transition:background .15s,color .15s; }
+    .drawer-link:hover,.drawer-link:active { background:#1C1C1C;color:#C9A84C; }
+    .drawer-link.gold { color:#C9A84C; }
+    .drawer-divider { height:1px;background:#2A2A2A;margin:.5rem 0; }
+    .drawer-close { align-self:flex-end;background:none;border:none;color:rgba(248,245,238,.4);font-size:1.5rem;cursor:pointer;padding:.25rem;margin-bottom:.5rem;line-height:1; }
+    .coffee-btn:hover { box-shadow:0 0 20px rgba(201,168,76,.25); }
   </style>
 </head>
 
 <body class="bg-ebony text-ivory font-body antialiased min-h-screen flex flex-col">
 
-  <!-- ═══════════ NAV ═══════════ -->
+  <!-- ═══ NAV ═══ -->
   <header class="sticky top-0 z-50 border-b border-surface-border bg-ebony/95 backdrop-blur-sm">
-    <nav class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-6">
+    <nav class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
 
       <!-- Wordmark -->
       <a href="/" class="flex items-center gap-2 group flex-shrink-0">
@@ -148,25 +97,49 @@ const fullTitle    = title.includes("Big Piano") ? title : `${title} | Big Piano
       </a>
 
       <!-- Desktop nav links -->
-      <div class="hidden sm:flex items-center gap-1 text-sm">
+      <div class="hidden sm:flex items-center gap-0.5 text-sm flex-1 justify-center">
         <a href="/"           class="nav-link">Videos</a>
         <a href="/scores"     class="nav-link">Free Scores</a>
         <a href="/metronome"  class="nav-link">Metronome</a>
         <a href="/tuner"      class="nav-link">Tuner</a>
         <a href="/instrument" class="nav-link">Instrument</a>
-        <a
-          href="https://www.youtube.com/channel/UCsKtOGplqKz3uGt9XD8VexQ"
-          target="_blank" rel="noopener noreferrer"
-          class="nav-link text-gold hover:text-gold-light"
-        >YouTube ↗</a>
+        <a href="/tiktok"     class="nav-link">TikTok</a>
       </div>
 
-      <!-- Mobile hamburger button -->
-      <button
-        id="hamburger-btn"
-        aria-label="Open menu"
-        class="sm:hidden flex flex-col justify-center items-center w-10 h-10 gap-1.5 rounded-lg border border-surface-border hover:border-gold/40 transition-colors"
-      >
+      <!-- Desktop social icons + coffee -->
+      <div class="hidden sm:flex items-center gap-2 flex-shrink-0">
+        <!-- YouTube -->
+        <a href={SOCIALS.youtube} target="_blank" rel="noopener noreferrer" class="social-icon" aria-label="YouTube">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.55A3.02 3.02 0 0 0 .5 6.19C0 8.04 0 12 0 12s0 3.96.5 5.81a3.02 3.02 0 0 0 2.12 2.14C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.55a3.02 3.02 0 0 0 2.12-2.14C24 15.96 24 12 24 12s0-3.96-.5-5.81zM9.75 15.52V8.48L15.5 12l-5.75 3.52z"/>
+          </svg>
+        </a>
+        <!-- TikTok -->
+        <a href={SOCIALS.tiktok} target="_blank" rel="noopener noreferrer" class="social-icon" aria-label="TikTok">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.22 8.22 0 0 0 4.78 1.52V6.76a4.84 4.84 0 0 1-1.01-.07z"/>
+          </svg>
+        </a>
+        <!-- Instagram (hidden if no URL set) -->
+        {SOCIALS.instagram && (
+          <a href={SOCIALS.instagram} target="_blank" rel="noopener noreferrer" class="social-icon" aria-label="Instagram">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+              <circle cx="12" cy="12" r="4"/>
+              <circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" stroke="none"/>
+            </svg>
+          </a>
+        )}
+        <!-- Coffee button -->
+        <a href={SOCIALS.coffee} target="_blank" rel="noopener noreferrer"
+          class="coffee-btn ml-1 inline-flex items-center gap-1.5 border border-gold/30 hover:border-gold/60 text-gold/70 hover:text-gold text-xs px-3 py-1.5 rounded-lg transition-all duration-200">
+          ☕ Support
+        </a>
+      </div>
+
+      <!-- Mobile hamburger -->
+      <button id="hamburger-btn" aria-label="Open menu"
+        class="sm:hidden flex flex-col justify-center items-center w-10 h-10 gap-1.5 rounded-lg border border-surface-border hover:border-gold/40 transition-colors">
         <span class="w-5 h-0.5 bg-ivory/70 rounded-full"></span>
         <span class="w-5 h-0.5 bg-ivory/70 rounded-full"></span>
         <span class="w-5 h-0.5 bg-ivory/70 rounded-full"></span>
@@ -174,12 +147,11 @@ const fullTitle    = title.includes("Big Piano") ? title : `${title} | Big Piano
     </nav>
   </header>
 
-  <!-- ═══════════ MOBILE DRAWER ═══════════ -->
+  <!-- ═══ MOBILE DRAWER ═══ -->
   <div id="mobile-drawer" role="dialog" aria-modal="true" aria-label="Navigation menu">
     <div id="drawer-backdrop"></div>
     <div id="drawer-panel">
       <button id="drawer-close" class="drawer-close" aria-label="Close menu">✕</button>
-
       <a href="/"           class="drawer-link">Videos</a>
       <a href="/scores"     class="drawer-link">Free Scores</a>
       <div class="drawer-divider"></div>
@@ -187,79 +159,112 @@ const fullTitle    = title.includes("Big Piano") ? title : `${title} | Big Piano
       <a href="/tuner"      class="drawer-link">🎸 Tuner</a>
       <a href="/instrument" class="drawer-link">🎹 Instrument</a>
       <div class="drawer-divider"></div>
-      <a
-        href="https://www.youtube.com/channel/UCsKtOGplqKz3uGt9XD8VexQ"
-        target="_blank" rel="noopener noreferrer"
-        class="drawer-link gold"
-      >YouTube Channel ↗</a>
+      <a href="/tiktok"     class="drawer-link">
+        <span class="flex items-center gap-2">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.22 8.22 0 0 0 4.78 1.52V6.76a4.84 4.84 0 0 1-1.01-.07z"/></svg>
+          TikTok
+        </span>
+      </a>
+      <a href={SOCIALS.youtube} target="_blank" rel="noopener noreferrer" class="drawer-link gold">
+        YouTube Channel ↗
+      </a>
+      {SOCIALS.instagram && (
+        <a href={SOCIALS.instagram} target="_blank" rel="noopener noreferrer" class="drawer-link">Instagram ↗</a>
+      )}
+      <div class="drawer-divider"></div>
+      <a href={SOCIALS.coffee} target="_blank" rel="noopener noreferrer"
+        class="drawer-link flex items-center gap-2 text-gold/80">
+        ☕ Buy me a coffee
+      </a>
     </div>
   </div>
 
-  <!-- ═══════════ MAIN ═══════════ -->
+  <!-- ═══ MAIN ═══ -->
   <main class="flex-1">
     <slot />
   </main>
 
-  <!-- ═══════════ FOOTER ═══════════ -->
+  <!-- ═══ FOOTER ═══ -->
   <footer class="border-t border-surface-border mt-20">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-ivory/40">
-      <p class="font-display italic text-base text-ivory/60">Big Piano Small Piano</p>
-      <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-        <a href="/"           class="hover:text-gold transition-colors">Videos</a>
-        <a href="/scores"     class="hover:text-gold transition-colors">Free Scores</a>
-        <a href="/metronome"  class="hover:text-gold transition-colors">Metronome</a>
-        <a href="/tuner"      class="hover:text-gold transition-colors">Tuner</a>
-        <a href="/instrument" class="hover:text-gold transition-colors">Instrument</a>
-        <a
-          href="https://www.youtube.com/channel/UCsKtOGplqKz3uGt9XD8VexQ"
-          target="_blank" rel="noopener noreferrer"
-          class="hover:text-gold transition-colors"
-        >YouTube ↗</a>
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-10 space-y-6">
+
+      <!-- Coffee CTA -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 py-5 border-b border-surface-border">
+        <div class="text-center sm:text-left">
+          <p class="font-display text-ivory/80 text-base mb-1">Enjoying the free music &amp; tools?</p>
+          <p class="text-ivory/40 text-xs max-w-xs leading-relaxed">Every score, video and tool is free — a coffee helps keep it that way.</p>
+        </div>
+        <a href={SOCIALS.coffee} target="_blank" rel="noopener noreferrer"
+          class="coffee-btn flex-shrink-0 inline-flex items-center gap-2 bg-gold hover:bg-gold-dark text-ebony font-semibold text-sm px-5 py-3 rounded-xl transition-all duration-200">
+          <span class="text-base">☕</span> Buy me a coffee
+        </a>
       </div>
-      <p>&copy; {new Date().getFullYear()} Big Piano Small Piano</p>
+
+      <!-- Nav + social + copyright -->
+      <div class="flex flex-col items-center gap-5">
+
+        <!-- Nav links -->
+        <div class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-ivory/40">
+          <a href="/"           class="hover:text-gold transition-colors">Videos</a>
+          <a href="/scores"     class="hover:text-gold transition-colors">Free Scores</a>
+          <a href="/metronome"  class="hover:text-gold transition-colors">Metronome</a>
+          <a href="/tuner"      class="hover:text-gold transition-colors">Tuner</a>
+          <a href="/instrument" class="hover:text-gold transition-colors">Instrument</a>
+          <a href="/tiktok"     class="hover:text-gold transition-colors">TikTok</a>
+        </div>
+
+        <!-- Social icons row -->
+        <div class="flex items-center gap-3">
+          <a href={SOCIALS.youtube} target="_blank" rel="noopener noreferrer" class="social-icon" aria-label="YouTube">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.55A3.02 3.02 0 0 0 .5 6.19C0 8.04 0 12 0 12s0 3.96.5 5.81a3.02 3.02 0 0 0 2.12 2.14C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.55a3.02 3.02 0 0 0 2.12-2.14C24 15.96 24 12 24 12s0-3.96-.5-5.81zM9.75 15.52V8.48L15.5 12l-5.75 3.52z"/>
+            </svg>
+          </a>
+          <a href={SOCIALS.tiktok} target="_blank" rel="noopener noreferrer" class="social-icon" aria-label="TikTok">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.22 8.22 0 0 0 4.78 1.52V6.76a4.84 4.84 0 0 1-1.01-.07z"/>
+            </svg>
+          </a>
+          {SOCIALS.instagram && (
+            <a href={SOCIALS.instagram} target="_blank" rel="noopener noreferrer" class="social-icon" aria-label="Instagram">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                <circle cx="12" cy="12" r="4"/>
+                <circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" stroke="none"/>
+              </svg>
+            </a>
+          )}
+        </div>
+
+        <p class="text-ivory/25 text-xs">&copy; {new Date().getFullYear()} Big Piano Small Piano</p>
+      </div>
     </div>
   </footer>
 
-  <!-- ═══════════ SCRIPTS ═══════════ -->
+  <!-- FLOATING COFFEE -->
+  <CoffeeButton variant="floating" />
+
   <script>
-    // Mobile nav
     const hamburger = document.getElementById("hamburger-btn");
     const drawer    = document.getElementById("mobile-drawer");
     const backdrop  = document.getElementById("drawer-backdrop");
     const closeBtn  = document.getElementById("drawer-close");
-
-    function openDrawer() {
-      drawer.classList.add("open");
-      document.body.style.overflow = "hidden";
-    }
-    function closeDrawer() {
-      drawer.classList.remove("open");
-      document.body.style.overflow = "";
-    }
-
+    function openDrawer()  { drawer.classList.add("open");    document.body.style.overflow="hidden"; }
+    function closeDrawer() { drawer.classList.remove("open"); document.body.style.overflow=""; }
     hamburger.addEventListener("click", openDrawer);
     closeBtn.addEventListener("click",  closeDrawer);
     backdrop.addEventListener("click",  closeDrawer);
-
-    // Close on nav link tap
     drawer.querySelectorAll("a").forEach(a => a.addEventListener("click", closeDrawer));
-
-    // Close on Escape key
-    document.addEventListener("keydown", e => { if (e.key === "Escape") closeDrawer(); });
-
-    // Scroll reveal
+    document.addEventListener("keydown", e => { if(e.key==="Escape") closeDrawer(); });
     const observer = new IntersectionObserver(
-      entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add("visible"); }),
+      entries => entries.forEach(e => { if(e.isIntersecting) e.target.classList.add("visible"); }),
       { threshold: 0.08 }
     );
     document.querySelectorAll(".reveal").forEach(el => observer.observe(el));
   </script>
-
 </body>
 </html>
 
 <style>
-  .nav-link {
-    @apply px-3 py-1.5 rounded text-ivory/70 hover:text-ivory hover:bg-surface-raised transition-all duration-150;
-  }
+  .nav-link { @apply px-3 py-1.5 rounded text-ivory/70 hover:text-ivory hover:bg-surface-raised transition-all duration-150; }
 </style>
