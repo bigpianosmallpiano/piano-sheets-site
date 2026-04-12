@@ -1,7 +1,7 @@
 ---
 // src/pages/videos/[slug].astro
 // ── Individual video post — one page per YouTube video ───────────────────
-
+import CoffeeButton from "../../components/CoffeeButton.astro";
 import Layout from "../../layouts/Layout.astro";
 import videos from "../../data/videos.json";
 import scores from "../../data/scores.json";
@@ -168,7 +168,10 @@ const jsonLd = {
         {video.description}
       </div>
     </section>
-
+  <CoffeeButton
+  variant="inline"
+  message="Enjoyed this piece? You can support more free piano covers and sheet music for the price of a coffee."
+  />
   </article>
 
   <hr class="gold-rule max-w-4xl mx-auto" />
