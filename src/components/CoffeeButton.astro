@@ -1,0 +1,141 @@
+---
+// src/components/CoffeeButton.astro
+// Usage:
+//   <CoffeeButton />                    — default inline button
+//   <CoffeeButton variant="section" />  — full section with message
+//   <CoffeeButton variant="floating" /> — floating fixed button
+//   <CoffeeButton variant="footer" />   — compact footer version
+
+export interface Props {
+  variant?: "inline" | "section" | "floating" | "footer";
+  message?: string;
+}
+
+const {
+  variant = "inline",
+  message,
+} = Astro.props;
+
+const URL = "https://www.buymeacoffee.com/bigpianosmc";
+
+// Context-aware default messages
+const defaultMessages: Record<string, string> = {
+  inline:   "Enjoying the music? You can support the channel for the price of a coffee ☕",
+  section:  "All scores, tools and videos are completely free — and always will be. If they've been useful to you, a small coffee goes a long way towards keeping this site running and new pieces coming.",
+  floating: "Support the channel",
+  footer:   "Keep the music free",
+};
+
+const msg = message ?? defaultMessages[variant];
+---
+
+{variant === "inline" && (
+  <div class="inline-coffee flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-gold/5 border border-gold/20 rounded-xl px-4 py-3">
+    <p class="text-ivory/60 text-sm leading-relaxed flex-1">{msg}</p>
+    <a
+      href={URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="coffee-btn flex-shrink-0 inline-flex items-center gap-2 bg-gold hover:bg-gold-dark text-ebony font-semibold text-sm px-4 py-2.5 rounded-lg transition-all duration-200 hover:shadow-gold-glow whitespace-nowrap"
+    >
+      <span class="text-base leading-none">☕</span>
+      Buy me a coffee
+    </a>
+  </div>
+)}
+
+{variant === "section" && (
+  <section class="coffee-section max-w-2xl mx-auto text-center space-y-4 py-10 px-4">
+    <div class="w-10 h-px bg-gradient-to-r from-transparent via-gold to-transparent mx-auto"></div>
+    <p class="text-gold text-xs tracking-[0.2em] uppercase font-mono mt-4">Support the channel</p>
+    <h2 class="font-display text-2xl sm:text-3xl font-semibold text-ivory">
+      Like what you hear?
+    </h2>
+    <p class="text-ivory/55 text-sm sm:text-base leading-relaxed max-w-md mx-auto">
+      {msg}
+    </p>
+    <a
+      href={URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="coffee-btn inline-flex items-center gap-2.5 bg-gold hover:bg-gold-dark text-ebony font-semibold text-base px-7 py-3.5 rounded-xl transition-all duration-200 hover:shadow-gold-glow mt-2"
+    >
+      <span class="text-lg leading-none">☕</span>
+      Buy me a coffee
+    </a>
+    <p class="text-ivory/25 text-xs">No pressure — every coffee is genuinely appreciated 🎹</p>
+  </section>
+)}
+
+{variant === "floating" && (
+  <div
+    id="coffee-float"
+    class="fixed bottom-6 right-5 z-40 flex flex-col items-end gap-2"
+    style="pointer-events:none"
+  >
+    <!-- Tooltip -->
+    <div
+      id="coffee-tooltip"
+      class="hidden opacity-0 transition-opacity duration-200 bg-surface border border-gold/30 text-ivory/80 text-xs rounded-lg px-3 py-2 max-w-[160px] text-right shadow-card"
+      style="pointer-events:none"
+    >
+      {msg}
+    </div>
+    <!-- Button -->
+    <a
+      href={URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      id="coffee-fab"
+      aria-label="Buy me a coffee"
+      class="coffee-btn flex items-center gap-2 bg-gold hover:bg-gold-dark text-ebony font-semibold text-sm px-4 py-3 rounded-full shadow-gold-glow transition-all duration-200 hover:scale-105 whitespace-nowrap"
+      style="pointer-events:auto"
+    >
+      <span class="text-base leading-none">☕</span>
+      <span class="hidden sm:inline">Buy me a coffee</span>
+    </a>
+  </div>
+
+  <script>
+    // Show tooltip on hover
+    const fab     = document.getElementById("coffee-fab");
+    const tooltip = document.getElementById("coffee-tooltip");
+    const floatEl = document.getElementById("coffee-float");
+
+    if (fab && tooltip) {
+      fab.addEventListener("mouseenter", () => {
+        tooltip.classList.remove("hidden");
+        requestAnimationFrame(() => tooltip.classList.replace("opacity-0", "opacity-100"));
+      });
+      fab.addEventListener("mouseleave", () => {
+        tooltip.classList.replace("opacity-100", "opacity-0");
+        setTimeout(() => tooltip.classList.add("hidden"), 200);
+      });
+    }
+
+    // Appear after 15 seconds on page
+    if (floatEl) {
+      floatEl.style.opacity = "0";
+      floatEl.style.transform = "translateY(16px)";
+      floatEl.style.transition = "opacity 0.5s ease, transform 0.5s ease";
+      floatEl.style.pointerEvents = "none";
+      setTimeout(() => {
+        floatEl.style.opacity = "1";
+        floatEl.style.transform = "translateY(0)";
+        floatEl.style.pointerEvents = "auto";
+      }, 15000);
+    }
+  </script>
+)}
+
+{variant === "footer" && (
+  <a
+    href={URL}
+    target="_blank"
+    rel="noopener noreferrer"
+    class="coffee-btn inline-flex items-center gap-1.5 text-ivory/40 hover:text-gold text-xs transition-colors duration-200"
+  >
+    <span>☕</span>
+    <span>{msg}</span>
+  </a>
+)}
