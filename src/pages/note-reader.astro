@@ -366,9 +366,12 @@ const jsonLd = {
       return -2;                             // A3
     }
 
-    function dpToY(dp, forClef) {
-      const topPos  = getClefTopPos(forClef);
-      return STAFF_TOP_Y + (topPos - dp) * (SPACE_H / 2);
+    function dpToY(dp, forClef, staffTopY = STAFF_TOP_Y) {
+      return staffTopY + (getClefTopPos(forClef) - dp) * (SPACE_H / 2);
+    }
+    // Compute a sensible staffTopY given a canvas height (centres the staff)
+    function centredStaffTop(canvasH) {
+      return Math.round((canvasH - STAFF_H) / 2);
     }
 
     // Lines for each clef (diatonic positions)
@@ -385,7 +388,7 @@ const jsonLd = {
 
     let vfRenderer = null;
 
-    function buildVFStaff(containerEl, w, h, forClef) {
+    function buildVFStaff(containerEl, w, h, forClef, staffTopY) {
       // Clear previous VexFlow SVG
       containerEl.innerHTML = "";
 
@@ -404,7 +407,7 @@ const jsonLd = {
 
       // Draw a stave across the full width
       // Stave(x, y, width) — y is the TOP of the top staff line
-      const stave = new VF.Stave(0, STAFF_TOP_Y, w - 4);
+      const stave = new VF.Stave(0, staffTopY, w - 4);
       stave.addClef(forClef);
 
       // Style: white-ish lines to match our theme
@@ -439,10 +442,10 @@ const jsonLd = {
       const w = staffWrap.clientWidth;
 
       // Main staff VF layer
-      buildVFStaff(staffVFLayer, w, CANVAS_H, clef);
+      const sty = centredStaffTop(CANVAS_H); buildVFStaff(staffVFLayer, w, CANVAS_H, clef, sty);
 
       // Draw divider line on VF layer after a tick (let VF render first)
-      setTimeout(() => drawDivider(staffVFLayer, CANVAS_H), 30);
+      setTimeout(() => drawDivider(staffVFLayer, CANVAS_H, centredStaffTop(CANVAS_H)), 30);
 
       // Notes canvas
       notesCanvas.height = CANVAS_H;
@@ -452,7 +455,7 @@ const jsonLd = {
       rebuildQuizVF();
     }
 
-    function drawDivider(containerEl, h) {
+    function drawDivider(containerEl, h, staffTopY = STAFF_TOP_Y) {
       // Add a gold vertical line at CLEF_ZONE using an SVG line
       const svg = containerEl.querySelector("svg");
       if (!svg) return;
@@ -488,12 +491,13 @@ const jsonLd = {
       const bottomLine = Math.min(...lines);
       const topLine    = Math.max(...lines);
 
+      const mainSty = centredStaffTop(CANVAS_H);
       noteHistory.forEach((entry, i) => {
         const x  = NOTE_START_X + i * NOTE_SPACING;
         const dp = diatonicPos(entry.noteName.replace("#",""), entry.octave);
         if (dp !== null) {
           drawNotehead(notesCtx, x, dp, clef, lines, bottomLine, topLine, landmarks,
-            entry.noteName, entry.octave, i === noteHistory.length - 1);
+            entry.noteName, entry.octave, i === noteHistory.length - 1, mainSty);
         }
       });
 
@@ -513,8 +517,8 @@ const jsonLd = {
 
     // ── Draw a single notehead ───────────────────────────────────────────────
     function drawNotehead(ctx, x, dp, forClef, lines, bottomLine, topLine, landmarks,
-                          noteName, octave, isActive) {
-      const y          = dpToY(dp, forClef);
+                          noteName, octave, isActive, staffTopY = STAFF_TOP_Y) {
+      const y          = dpToY(dp, forClef, staffTopY);
       const r          = SPACE_H * 0.45;   // notehead radius ≈ half a space
       const isLandmark = showLandmarks && landmarks.includes(dp);
       const isAccid    = !isNatural(noteName);
@@ -525,14 +529,14 @@ const jsonLd = {
       const lp = dp % 2 === 0 ? 0 : 0;
       // Below staff
       for (let p = bottomLine - 2; p >= dp; p -= 2) {
-        const ly = dpToY(p, forClef);
+        const ly = dpToY(p, forClef, staffTopY);
         ctx.beginPath();
         ctx.moveTo(x - r * 1.8, ly); ctx.lineTo(x + r * 1.8, ly);
         ctx.stroke();
       }
       // Above staff
       for (let p = topLine + 2; p <= dp; p += 2) {
-        const ly = dpToY(p, forClef);
+        const ly = dpToY(p, forClef, staffTopY);
         ctx.beginPath();
         ctx.moveTo(x - r * 1.8, ly); ctx.lineTo(x + r * 1.8, ly);
         ctx.stroke();
@@ -737,14 +741,16 @@ const jsonLd = {
       {n:"E",o:3},{n:"F",o:3},{n:"G",o:3},{n:"A",o:3},{n:"B",o:3},
     ];
 
-    const QUIZ_H     = 160;
-    const QUIZ_VF_W  = 280;
+    const QUIZ_H         = 160;
+    const QUIZ_VF_W      = 280;
     const QUIZ_CLEF_ZONE = 65;
 
+    function getQuizSty() { return centredStaffTop(QUIZ_H); }
+
     function rebuildQuizVF() {
-      buildVFStaff(quizVFLayer, QUIZ_VF_W, QUIZ_H, quizUseClef);
-      setTimeout(() => drawDivider(quizVFLayer, QUIZ_H), 30);
-      // Size quiz canvas
+      const qSty = getQuizSty();
+      buildVFStaff(quizVFLayer, QUIZ_VF_W, QUIZ_H, quizUseClef, qSty);
+      setTimeout(() => drawDivider(quizVFLayer, QUIZ_H, qSty), 30);
       quizCanvas.width  = QUIZ_VF_W;
       quizCanvas.height = QUIZ_H;
       drawQuizNote();
@@ -777,13 +783,14 @@ const jsonLd = {
       quizCtx.rect(QUIZ_CLEF_ZONE + 2, 0, QUIZ_VF_W, QUIZ_H);
       quizCtx.clip();
 
+      const qSty = getQuizSty();
       drawNotehead(quizCtx, QUIZ_VF_W / 2 + 10, dp, quizUseClef,
         lines, bottomLine, topLine, landmarks,
-        quizNote.n, quizNote.o, false);
+        quizNote.n, quizNote.o, false, qSty);
 
       // If labels hidden, erase the label so quiz is harder
       if (!showLabels) {
-        const ny = dpToY(dp, quizUseClef);
+        const ny = dpToY(dp, quizUseClef, qSty);
         quizCtx.fillStyle = COL.bg;
         quizCtx.fillRect(QUIZ_VF_W/2 - 5, ny + 8, 50, 20);
       }
