@@ -1,28 +1,13 @@
 ---
-// src/pages/note-reader.astro — v4 (VexFlow clefs)
+// src/pages/note-reader.astro — v5 (single canvas, Bravura font)
 import Layout from "../layouts/Layout.astro";
 import CoffeeButton from "../components/CoffeeButton.astro";
-
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  "name": "Piano Note Reader — Learn to Read Music | Big Piano Small Piano",
-  "description": "Play piano keys and watch the notes appear on a musical staff in real time. Learn treble and bass clef notation interactively.",
-  "url": "https://bigpianosmallpiano.pages.dev/note-reader",
-  "applicationCategory": "EducationalApplication",
-  "operatingSystem": "Any",
-  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
-};
 ---
 
 <Layout
   title="Learn to Read Piano Notes — Interactive Staff | Big Piano Small Piano"
   description="Play piano keys and watch notes appear on a musical staff in real time. Learn treble and bass clef notation interactively. Free tool for piano beginners."
 >
-  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
-
-  <!-- VexFlow — industry-standard music notation library -->
-  <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
 
   <!-- HERO -->
   <section class="relative overflow-hidden border-b border-surface-border">
@@ -43,7 +28,6 @@ const jsonLd = {
   <!-- TOOLBAR -->
   <div class="max-w-4xl mx-auto px-4 sm:px-6 pt-5">
     <div class="bg-surface border border-surface-border rounded-xl p-3 flex flex-wrap items-center gap-3">
-
       <div class="flex rounded-lg border border-surface-border overflow-hidden flex-shrink-0">
         <button id="clef-treble" data-clef="treble"
           class="clef-btn px-5 py-2 text-sm font-medium bg-gold text-ebony transition-all">
@@ -54,22 +38,18 @@ const jsonLd = {
           𝄢 Bass
         </button>
       </div>
-
       <label class="flex items-center gap-2 cursor-pointer select-none">
         <input type="checkbox" id="show-labels" class="w-4 h-4 accent-gold" checked />
         <span class="text-ivory/60 text-sm">Note names</span>
       </label>
-
       <label class="flex items-center gap-2 cursor-pointer select-none">
         <input type="checkbox" id="show-landmarks" class="w-4 h-4 accent-gold" checked />
         <span class="text-ivory/60 text-sm">Landmarks</span>
       </label>
-
       <button id="clear-btn"
         class="ml-auto text-xs text-ivory/40 hover:text-gold border border-surface-border hover:border-gold/40 px-3 py-2 rounded-lg transition-all">
         Clear
       </button>
-
       <button id="rec-btn"
         class="flex items-center gap-1.5 border border-surface-border hover:border-red-500/50 text-ivory/50 hover:text-red-400 text-xs px-3 py-2 rounded-lg transition-all">
         <span class="w-2 h-2 rounded-full bg-red-500"></span>
@@ -114,7 +94,6 @@ const jsonLd = {
           <p class="text-ivory/30 text-xs mt-1 italic">"FACE"</p>
         </div>
       </div>
-
       <div id="legend-bass" class="hidden bg-surface border border-surface-border rounded-xl px-4 py-3 flex items-center gap-4">
         <div class="text-center">
           <p class="text-gold text-xs font-mono uppercase tracking-widest mb-1">Lines (bottom→top)</p>
@@ -147,10 +126,10 @@ const jsonLd = {
   </div>
 
   <!-- LIVE STAFF
-       Architecture:
-       • #staff-vf-layer  — VexFlow SVG div (staff lines + clef), never scrolls
-       • #staff-notes-canvas — our canvas for noteheads, scrolls left
-       Both are absolutely positioned inside #staff-wrap.
+       Single-canvas architecture:
+       • bg-canvas  = staff lines + clef (redrawn on resize/clef-change, never scrolls visually)
+       • fg-canvas  = noteheads only (grows right, translates left)
+       Both are stacked in a clip container.
   -->
   <div class="max-w-4xl mx-auto px-4 sm:px-6 pt-4">
     <div class="bg-surface border border-surface-border rounded-xl overflow-hidden">
@@ -161,15 +140,9 @@ const jsonLd = {
           <div id="playing-indicator" class="w-2 h-2 rounded-full bg-surface-border transition-colors duration-100"></div>
         </div>
       </div>
-      <div id="staff-wrap" class="relative" style="height:200px; overflow:hidden;">
-        <!-- Layer 1: VexFlow staff + clef (frozen, full width) -->
-        <div id="staff-vf-layer"
-          class="absolute top-0 left-0 w-full h-full pointer-events-none"
-          style="z-index:1;"></div>
-        <!-- Layer 2: custom canvas for noteheads (scrolls left) -->
-        <canvas id="staff-notes-canvas"
-          class="absolute top-0 left-0 pointer-events-none"
-          style="height:200px; z-index:2;"></canvas>
+      <div class="relative overflow-hidden" id="staff-clip" style="height:200px;">
+        <canvas id="staff-bg"  class="absolute top-0 left-0" style="height:200px;z-index:1;pointer-events:none;"></canvas>
+        <canvas id="staff-fg"  class="absolute top-0 left-0" style="height:200px;z-index:2;pointer-events:none;"></canvas>
       </div>
     </div>
   </div>
@@ -180,9 +153,9 @@ const jsonLd = {
       <div class="px-4 pt-3 pb-1 flex items-center justify-between flex-wrap gap-2">
         <p class="text-ivory/25 text-xs font-mono">A S D F G H J = white &nbsp;|&nbsp; W E T Y U = black &nbsp;|&nbsp; Swipe for more notes</p>
         <div class="flex items-center gap-2 flex-shrink-0">
-          <button id="oct-down" class="w-7 h-7 rounded border border-surface-border text-ivory/50 hover:text-gold text-sm flex items-center justify-center transition-colors">−</button>
+          <button id="oct-down" class="w-7 h-7 rounded border border-surface-border text-ivory/50 hover:text-gold text-sm flex items-center justify-center">−</button>
           <span class="text-ivory/50 text-xs font-mono">Oct <span id="oct-label">4</span></span>
-          <button id="oct-up"   class="w-7 h-7 rounded border border-surface-border text-ivory/50 hover:text-gold text-sm flex items-center justify-center transition-colors">+</button>
+          <button id="oct-up"   class="w-7 h-7 rounded border border-surface-border text-ivory/50 hover:text-gold text-sm flex items-center justify-center">+</button>
         </div>
       </div>
       <div id="piano-keys" class="relative h-36 sm:h-44 px-3 pb-3 select-none"
@@ -192,7 +165,7 @@ const jsonLd = {
     </div>
   </div>
 
-  <!-- QUIZ — VexFlow draws clef + staff, our canvas draws the notehead -->
+  <!-- QUIZ — single canvas, same drawing functions -->
   <div class="max-w-4xl mx-auto px-4 sm:px-6 pt-4">
     <div class="bg-surface border border-surface-border rounded-xl p-5 space-y-4">
       <div class="flex items-center justify-between flex-wrap gap-2">
@@ -200,17 +173,12 @@ const jsonLd = {
           <p class="text-gold text-xs tracking-[0.2em] uppercase font-mono mb-0.5">Note quiz</p>
           <p class="text-ivory/60 text-sm">Find this note on the piano. Alternates treble &amp; bass.</p>
         </div>
-        <button id="quiz-next" class="text-sm bg-gold hover:bg-gold-dark text-ebony font-medium px-4 py-2 rounded-lg transition-colors">
-          New note →
-        </button>
+        <button id="quiz-next" class="text-sm bg-gold hover:bg-gold-dark text-ebony font-medium px-4 py-2 rounded-lg transition-colors">New note →</button>
       </div>
       <div class="grid sm:grid-cols-2 gap-4 items-center">
-        <!-- Quiz staff: VexFlow layer + canvas notehead layer -->
-        <div class="relative rounded-lg border border-surface-border overflow-hidden"
-          id="quiz-wrap" style="height:160px; background:#141414;">
-          <div id="quiz-vf-layer"  class="absolute top-0 left-0 w-full h-full pointer-events-none" style="z-index:1;"></div>
-          <canvas id="quiz-canvas" class="absolute top-0 left-0 pointer-events-none" style="z-index:2;"></canvas>
-        </div>
+        <!-- Quiz canvas — staff + note drawn together, no z-index juggling -->
+        <canvas id="quiz-canvas" width="320" height="160"
+          class="w-full rounded-lg border border-surface-border" style="background:#141414;"></canvas>
         <div class="space-y-3">
           <p class="text-ivory/50 text-sm">Play this note on the piano:</p>
           <div id="quiz-status"
@@ -233,9 +201,9 @@ const jsonLd = {
       <p class="text-gold text-xs tracking-[0.2em] uppercase font-mono mb-4">Tips for reading music</p>
       <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {[
-          { icon:"🎯", title:"Start with landmarks",  tip:"Learn Middle C, Treble G (2nd line), and Bass F (4th line) first. All other notes are found by counting from these anchors." },
-          { icon:"📏", title:"Lines vs spaces",       tip:"Notes sit ON a line (line goes through the notehead) or IN a space (between two lines)." },
-          { icon:"🔑", title:"The clef is your key",  tip:"Treble clef curls around the G line. Bass clef's dots surround the F line." },
+          { icon:"🎯", title:"Start with landmarks",  tip:"Learn Middle C, Treble G (2nd line from bottom), and Bass F (4th line). All other notes are found by counting from these." },
+          { icon:"📏", title:"Lines vs spaces",       tip:"Notes sit ON a line (the line goes through the notehead) or IN a space (between two lines)." },
+          { icon:"🔑", title:"The clef is your key",  tip:"Treble clef curls around the G line. Bass clef's dots surround the F line. These anchor notes define everything else." },
           { icon:"🔢", title:"Count by steps",        tip:"Notes move alphabetically A–G then repeat. Each step up on the staff = one letter up." },
           { icon:"🪄", title:"Ledger lines",          tip:"Middle C sits on a short ledger line below treble clef or above bass clef — the bridge between both." },
           { icon:"🔄", title:"Practice daily",        tip:"5 minutes a day identifying notes builds muscle memory faster than an hour once a week." },
@@ -255,15 +223,72 @@ const jsonLd = {
     </div>
   </div>
 
-  <!-- ════════════════════════ SCRIPT ════════════════════════════════════════ -->
   <script>
-  // Wait for VexFlow to load from CDN
-  window.addEventListener('load', function() {
   (function () {
 
-    const VF = Vex.Flow;
+    // ════════════════════════════════════════════════════════════════════════
+    //  STAFF GEOMETRY — fully self-contained, no VexFlow
+    //
+    //  We pick a SPACE value (pixels per space) and a reference Y,
+    //  then derive every position from those two numbers.
+    //  This guarantees perfect alignment between staff lines and noteheads.
+    // ════════════════════════════════════════════════════════════════════════
 
-    // ── Note utilities ───────────────────────────────────────────────────────
+    const SP = 11;          // pixels per space  (one space = distance between two adjacent lines)
+    const HALF = SP / 2;    // pixels per diatonic step (half a space)
+
+    /*
+      Staff has 5 lines separated by SP pixels each.
+      Total staff height = 4 * SP.
+
+      We define all positions by a single anchor:
+        REF_Y = canvas Y of the BOTTOM staff line for the current clef.
+
+      Then every other line is simply REF_Y - n*SP for n = 0..4.
+      Any note at diatonic position dp maps to:
+        noteY = REF_Y - (dp - bottomLineDp) * HALF
+    */
+
+    // Diatonic positions of each staff line, bottom to top
+    //   (diatonic pos = semitone-free step count from C4; C4=0, D4=1, E4=2...)
+    const TREBLE = {
+      lines:      [2, 4, 6, 8, 10],   // E4 G4 B4 D5 F5  (bottom→top)
+      landmarks:  [0, 4],             // Middle C (ledger), G4 (line 2)
+      clefChar:   "\u{1D11E}",        // 𝄞 treble clef Unicode
+      clefOffsetX: 4,                 // px from left edge
+      // Treble clef baseline should sit so its curl lands on G4 (line 2)
+      // We place it by measuring: baseline = G4_Y + some offset
+      // We'll compute dynamically using the ref Y
+      clefBaselineFn: (refY) => refY - (4-2)*SP + SP*1.8,  // G4 line Y + adjustment
+      clefFontSize:   (staffH) => staffH * 2.5,
+      name: "treble",
+    };
+
+    const BASS = {
+      lines:      [-10, -8, -6, -4, -2],  // G2 B2 D3 F3 A3
+      landmarks:  [0, -4],                 // Middle C (ledger), F3 (line 4)
+      clefChar:   "\u{1D122}",             // 𝄢 bass clef Unicode
+      clefOffsetX: 4,
+      // Bass clef sits with its body between lines 3-5 (top 3)
+      // Baseline ≈ top-line Y + SP * 1.3
+      clefBaselineFn: (refY) => refY - 4*SP + SP * 1.4,
+      clefFontSize:   (staffH) => staffH * 1.1,
+      name: "bass",
+    };
+
+    // ── Colors ───────────────────────────────────────────────────────────────
+    const C = {
+      bg:      "#141414",
+      line:    "rgba(248,245,238,0.28)",
+      ledger:  "rgba(248,245,238,0.50)",
+      clef:    "#C9A84C",
+      divider: "rgba(201,168,76,0.45)",
+      white:   "#F8F5EE",
+      gold:    "#C9A84C",
+      blue:    "#7CB9E8",
+    };
+
+    // ── State ────────────────────────────────────────────────────────────────
     const NOTE_NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
     const DIATONIC   = ["C","D","E","F","G","A","B"];
     const A4 = 440;
@@ -272,327 +297,329 @@ const jsonLd = {
       return A4 * Math.pow(2, (NOTE_NAMES.indexOf(name) - 9 + (oct - 4) * 12) / 12);
     }
     function isNatural(n) { return !n.includes("#"); }
-
-    // Diatonic step position relative to C4 = 0
-    function diatonicPos(noteName, octave) {
-      const b = DIATONIC.indexOf(noteName.replace("#","").replace("b",""));
-      return b === -1 ? null : (octave - 4) * 7 + b;
+    function diatonicStep(name, oct) {
+      const b = DIATONIC.indexOf(name.replace("#","").replace("b",""));
+      return b === -1 ? null : (oct - 4) * 7 + b;
     }
 
-    // VexFlow note key format: "c/4", "d#/5", etc.
-    function toVFKey(noteName, octave) {
-      return noteName.toLowerCase().replace("#","#") + "/" + octave;
-    }
-
-    // ── State ────────────────────────────────────────────────────────────────
     let clef = "treble", showLabels = true, showLandmarks = true;
     let noteHistory = [], octaveBase = 4;
-    let audioCtx = null, recDest = null, mediaRec = null;
-    let recChunks = [], isRecording = false, recSeconds = 0, recInterval = null;
+    let audioCtx = null, recDest = null;
+    let mediaRec = null, recChunks = [], isRecording = false;
+    let recSeconds = 0, recInterval = null;
     let quizNote = null, quizUseClef = "treble";
     let quizCorrect = 0, quizWrong = 0, quizAnswered = false;
+    let fontLoaded = false;
 
     // ── DOM ──────────────────────────────────────────────────────────────────
-    const staffWrap    = document.getElementById("staff-wrap");
-    const staffVFLayer = document.getElementById("staff-vf-layer");
-    const notesCanvas  = document.getElementById("staff-notes-canvas");
-    const quizWrap     = document.getElementById("quiz-wrap");
-    const quizVFLayer  = document.getElementById("quiz-vf-layer");
-    const quizCanvas   = document.getElementById("quiz-canvas");
-    const pianoOuter   = document.getElementById("piano-keys");
-    const pianoInner   = document.getElementById("piano-inner");
-    const noteCountEl  = document.getElementById("note-count");
-    const playingInd   = document.getElementById("playing-indicator");
-    const clearBtn     = document.getElementById("clear-btn");
-    const recBtn       = document.getElementById("rec-btn");
-    const recLabel     = document.getElementById("rec-label");
-    const recTimerEl   = document.getElementById("rec-timer");
-    const recDownload  = document.getElementById("rec-download");
-    const quizStatus   = document.getElementById("quiz-status");
-    const quizNextBtn  = document.getElementById("quiz-next");
-    const quizClefLbl  = document.getElementById("quiz-clef-label");
-    const showLabelsEl = document.getElementById("show-labels");
-    const showLandEl   = document.getElementById("show-landmarks");
-    const legendTreble = document.getElementById("legend-treble");
-    const legendBass   = document.getElementById("legend-bass");
-    const octLabel     = document.getElementById("oct-label");
+    const staffClip   = document.getElementById("staff-clip");
+    const staffBg     = document.getElementById("staff-bg");
+    const staffFg     = document.getElementById("staff-fg");
+    const quizCanvas  = document.getElementById("quiz-canvas");
+    const pianoOuter  = document.getElementById("piano-keys");
+    const pianoInner  = document.getElementById("piano-inner");
+    const noteCountEl = document.getElementById("note-count");
+    const playingInd  = document.getElementById("playing-indicator");
+    const octLabel    = document.getElementById("oct-label");
+    const showLabelsEl   = document.getElementById("show-labels");
+    const showLandEl     = document.getElementById("show-landmarks");
+    const legendTreble   = document.getElementById("legend-treble");
+    const legendBass     = document.getElementById("legend-bass");
+    const quizStatus     = document.getElementById("quiz-status");
+    const quizNextBtn    = document.getElementById("quiz-next");
+    const quizClefLbl    = document.getElementById("quiz-clef-label");
 
-    const notesCtx = notesCanvas.getContext("2d");
-    const quizCtx  = quizCanvas.getContext("2d");
+    const bgCtx   = staffBg.getContext("2d");
+    const fgCtx   = staffFg.getContext("2d");
+    const quizCtx = quizCanvas.getContext("2d");
 
-    // ── Colors ───────────────────────────────────────────────────────────────
-    const COL = {
-      bg:       "#141414",
-      noteFill: "#F8F5EE",
-      noteGold: "#C9A84C",
-      noteAcc:  "#7CB9E8",
-      ledger:   "rgba(248,245,238,0.5)",
-      divider:  "rgba(201,168,76,0.4)",
-    };
+    // ════════════════════════════════════════════════════════════════════════
+    //  CORE DRAWING
+    //  All drawing is parameterised by:
+    //    ctx       — canvas context
+    //    refY      — canvas Y of the BOTTOM staff line
+    //    cfg       — TREBLE or BASS object
+    //    startX    — left edge where staff lines begin
+    //    endX      — right edge where staff lines end
+    // ════════════════════════════════════════════════════════════════════════
 
-    // ── Staff geometry (matches VexFlow internal layout) ─────────────────────
-    // VexFlow draws a stave with 4 spaces × 10px = 40px staff height by default
-    // We use scale factor to match our canvas pixel coordinates.
-    // Key insight: VexFlow Stave(x, y, width) puts top line at y,
-    // with each space = 10px. Middle of staff = y + 20px (top + 2 spaces).
-
-    // We use VexFlow for: staff lines + clef symbol only.
-    // We draw noteheads ourselves on the canvas layer so we can:
-    //   - control color (gold for landmarks)
-    //   - show note name labels
-    //   - scroll smoothly without re-rendering VexFlow
-
-    const STAFF_TOP_Y   = 40;   // pixels from canvas top to top staff line
-    const SPACE_H       = 10;   // pixels per space (VexFlow default)
-    const STAFF_H       = 40;   // 4 spaces × 10px
-    // Canvas height:
-    const CANVAS_H      = 200;
-    // The staff vertical centre (3rd line from bottom = line index 2):
-    // Lines from top: 0,10,20,30,40 → centre = 20
-    const STAFF_CENTRE_Y = STAFF_TOP_Y + 20;
-
-    // Convert diatonic position (relative to C4=0) → canvas Y
-    // Treble: E4 is bottom line (line 1 = y + 40)
-    //         G4 is line 2     (y + 30)
-    //         B4 is line 3/mid (y + 20) → diatonic pos from C4: B4 = pos 6
-    //         D5 is line 4     (y + 10)
-    //         F5 is line 5/top (y + 0)   diatonic pos from C4: F5 = pos 10
-    // So: Y = STAFF_TOP_Y + (topLinePos - dp) * (SPACE_H/2)
-    //   where topLinePos = 10 for treble (F5), 10 for bass... need per-clef.
-
-    function getClefTopPos(forClef) {
-      // diatonic pos of the TOP staff line
-      if (forClef === "treble") return 10;  // F5
-      return -2;                             // A3
+    // dp → canvas Y
+    function dpToY(dp, cfg, refY) {
+      const bottomDp = cfg.lines[0];
+      return refY - (dp - bottomDp) * HALF;
     }
 
-    function dpToY(dp, forClef, staffTopY = STAFF_TOP_Y) {
-      return staffTopY + (getClefTopPos(forClef) - dp) * (SPACE_H / 2);
+    // Draw 5 staff lines
+    function drawStaffLines(ctx, refY, startX, endX) {
+      ctx.strokeStyle = C.line;
+      ctx.lineWidth   = 0.9;
+      for (let i = 0; i < 5; i++) {
+        const y = refY - i * SP;
+        ctx.beginPath();
+        ctx.moveTo(startX, y);
+        ctx.lineTo(endX, y);
+        ctx.stroke();
+      }
     }
-    // Compute a sensible staffTopY given a canvas height (centres the staff)
-    function centredStaffTop(canvasH) {
-      return Math.round((canvasH - STAFF_H) / 2);
+
+    // Draw clef symbol
+    function drawClef(ctx, cfg, refY, canvasH) {
+      const staffH = 4 * SP;
+      const size   = cfg.clefFontSize(staffH);
+      const bY     = cfg.clefBaselineFn(refY);
+      ctx.fillStyle = C.clef;
+      ctx.font      = `${size}px 'Noto Music', 'FreeSerif', serif`;
+      ctx.textAlign = "left";
+      ctx.fillText(cfg.clefChar, cfg.clefOffsetX, bY);
     }
 
-    // Lines for each clef (diatonic positions)
-    const TREBLE_LINES  = [2, 4, 6, 8, 10]; // E4 G4 B4 D5 F5
-    const BASS_LINES    = [-10,-8,-6,-4,-2]; // G2 B2 D3 F3 A3
-    const TREBLE_LANDMARKS = [0, 4];  // Middle C, G4
-    const BASS_LANDMARKS   = [0,-4];  // Middle C, F3
+    // Draw vertical divider line between clef zone and note zone
+    function drawDividerLine(ctx, refY, divX) {
+      ctx.strokeStyle = C.divider;
+      ctx.lineWidth   = 1;
+      ctx.beginPath();
+      ctx.moveTo(divX, refY - 4 * SP - 4);
+      ctx.lineTo(divX, refY + 4);
+      ctx.stroke();
+    }
 
-    // ── VexFlow staff renderer ───────────────────────────────────────────────
-    // CLEF_ZONE: pixels reserved for clef before notes start
-    const CLEF_ZONE      = 70;
-    const NOTE_START_X   = CLEF_ZONE + 10;
-    const NOTE_SPACING   = 38;
+    // Draw a notehead at diatonic position dp
+    function drawNote(ctx, x, dp, cfg, refY, noteName, octave, isActive) {
+      const y          = dpToY(dp, cfg, refY);
+      const rx         = SP * 0.50;   // horizontal radius
+      const ry         = SP * 0.36;   // vertical radius
+      const bottomDp   = cfg.lines[0];
+      const topDp      = cfg.lines[4];
+      const isLandmark = showLandmarks && cfg.landmarks.includes(dp);
+      const isAccid    = !isNatural(noteName);
+      const midLineDp  = cfg.lines[2];
 
-    let vfRenderer = null;
-
-    function buildVFStaff(containerEl, w, h, forClef, staffTopY) {
-      // Clear previous VexFlow SVG
-      containerEl.innerHTML = "";
-
-      const renderer = new VF.Renderer(containerEl, VF.Renderer.Backends.SVG);
-      renderer.resize(w, h);
-      const ctx = renderer.getContext();
-
-      // Style the SVG to match our dark theme
-      const svg = containerEl.querySelector("svg");
-      if (svg) {
-        svg.style.position   = "absolute";
-        svg.style.top        = "0";
-        svg.style.left       = "0";
-        svg.style.background = "transparent";
+      // ── Ledger lines ──
+      ctx.strokeStyle = C.ledger;
+      ctx.lineWidth   = 1.3;
+      // Below bottom line: every even step below bottomDp down to dp
+      for (let p = bottomDp - 2; p >= dp; p -= 2) {
+        const ly = dpToY(p, cfg, refY);
+        ctx.beginPath();
+        ctx.moveTo(x - rx * 1.8, ly);
+        ctx.lineTo(x + rx * 1.8, ly);
+        ctx.stroke();
+      }
+      // Above top line: every even step above topDp up to dp
+      for (let p = topDp + 2; p <= dp; p += 2) {
+        const ly = dpToY(p, cfg, refY);
+        ctx.beginPath();
+        ctx.moveTo(x - rx * 1.8, ly);
+        ctx.lineTo(x + rx * 1.8, ly);
+        ctx.stroke();
       }
 
-      // Draw a stave across the full width
-      // Stave(x, y, width) — y is the TOP of the top staff line
-      const stave = new VF.Stave(0, staffTopY, w - 4);
-      stave.addClef(forClef);
+      // ── Notehead ──
+      const fill = isActive   ? "#FFFFFF" :
+                   isLandmark ? C.gold    :
+                   isAccid    ? C.blue    : C.white;
+      ctx.fillStyle = fill;
+      ctx.beginPath();
+      ctx.ellipse(x, y, rx, ry, -0.15, 0, Math.PI * 2);
+      ctx.fill();
 
-      // Style: white-ish lines to match our theme
-      ctx.setStrokeStyle("rgba(248,245,238,0.28)");
-      ctx.setFillStyle("#C9A84C");   // clef colour = gold
+      // ── Stem ──
+      // Below middle line → stem up (right side), above → stem down (left side)
+      ctx.strokeStyle = fill;
+      ctx.lineWidth   = 1.5;
+      const stemUp  = dp < midLineDp;
+      const stemX   = x + (stemUp ? rx * 0.9 : -rx * 0.9);
+      const stemLen = SP * 3.5;
+      ctx.beginPath();
+      ctx.moveTo(stemX, y);
+      ctx.lineTo(stemX, y + (stemUp ? -stemLen : stemLen));
+      ctx.stroke();
 
-      stave.setContext(ctx).draw();
-
-      // Re-colour the clef glyph gold (VexFlow draws it in black by default)
-      // Find all path/text elements after the staff lines and tint them
-      if (svg) {
-        // Staff lines are <path> or <line>; clef is usually last rendered
-        // Apply gold fill to everything VexFlow drew
-        const paths = svg.querySelectorAll("path, rect, text");
-        paths.forEach(el => {
-          el.style.fill   = "#C9A84C";
-          el.style.stroke = "#C9A84C";
-        });
-        // Lines specifically should be ivory, not gold
-        const lines = svg.querySelectorAll("line");
-        lines.forEach(el => {
-          el.style.stroke = "rgba(248,245,238,0.28)";
-          el.style.fill   = "none";
-        });
+      // ── Sharp sign ──
+      if (isAccid) {
+        ctx.fillStyle = C.blue;
+        ctx.font      = `bold ${SP * 1.4}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.fillText("#", x - rx * 2.4, y + SP * 0.35);
       }
 
-      return stave;
+      // ── Note name label ──
+      if (showLabels) {
+        ctx.fillStyle = isLandmark ? C.gold : "rgba(201,168,76,0.72)";
+        ctx.font      = `500 ${SP * 1.15}px 'DM Sans', sans-serif`;
+        ctx.textAlign = "center";
+        ctx.fillText(noteName.replace("#",""), x, y + ry + SP * 1.6);
+      }
+
+      // ── Octave hint (very faint) ──
+      ctx.fillStyle = "rgba(248,245,238,0.10)";
+      ctx.font      = `${SP * 0.85}px monospace`;
+      ctx.textAlign = "center";
+      ctx.fillText(octave, x, y - stemLen - SP * 0.5);
     }
 
-    // ── Resize + full rebuild ────────────────────────────────────────────────
-    function resizeAndDraw() {
-      const w = staffWrap.clientWidth;
+    // ════════════════════════════════════════════════════════════════════════
+    //  MAIN STAFF
+    // ════════════════════════════════════════════════════════════════════════
 
-      // Main staff VF layer
-      const sty = centredStaffTop(CANVAS_H); buildVFStaff(staffVFLayer, w, CANVAS_H, clef, sty);
+    const CANVAS_H     = 200;
+    const CLEF_ZONE    = 68;     // px reserved for clef
+    const NOTE_START   = CLEF_ZONE + 12;
+    const NOTE_SPACING = 40;
 
-      // Draw divider line on VF layer after a tick (let VF render first)
-      setTimeout(() => drawDivider(staffVFLayer, CANVAS_H, centredStaffTop(CANVAS_H)), 30);
-
-      // Notes canvas
-      notesCanvas.height = CANVAS_H;
-      redrawNotes();
-
-      // Quiz
-      rebuildQuizVF();
+    // refY for main staff: centre the staff vertically in CANVAS_H
+    // Staff total height = 4*SP. We want it centred with equal space above/below.
+    function mainRefY() {
+      return Math.round(CANVAS_H / 2 + SP * 2) - 4;  // bottom line Y
     }
 
-    function drawDivider(containerEl, h, staffTopY = STAFF_TOP_Y) {
-      // Add a gold vertical line at CLEF_ZONE using an SVG line
-      const svg = containerEl.querySelector("svg");
-      if (!svg) return;
-      // Remove any existing divider
-      const old = svg.querySelector(".clef-divider");
-      if (old) old.remove();
-      const ns   = "http://www.w3.org/2000/svg";
-      const line = document.createElementNS(ns, "line");
-      line.setAttribute("class", "clef-divider");
-      line.setAttribute("x1", CLEF_ZONE);
-      line.setAttribute("y1", STAFF_TOP_Y - 4);
-      line.setAttribute("x2", CLEF_ZONE);
-      line.setAttribute("y2", STAFF_TOP_Y + STAFF_H + 4);
-      line.setAttribute("stroke", "rgba(201,168,76,0.45)");
-      line.setAttribute("stroke-width", "1");
-      svg.appendChild(line);
+    function redrawBg() {
+      const w = staffBg.width;
+      const h = CANVAS_H;
+      bgCtx.clearRect(0, 0, w, h);
+      bgCtx.fillStyle = C.bg;
+      bgCtx.fillRect(0, 0, w, h);
+
+      const cfg  = clef === "treble" ? TREBLE : BASS;
+      const refY = mainRefY();
+
+      drawStaffLines(bgCtx, refY, 0, w);
+      drawClef(bgCtx, cfg, refY, h);
+      drawDividerLine(bgCtx, refY, CLEF_ZONE);
     }
 
-    // ── Redraw notes canvas ──────────────────────────────────────────────────
     function redrawNotes() {
-      const needed = NOTE_START_X + noteHistory.length * NOTE_SPACING + 60;
-      notesCanvas.width = Math.max(staffWrap.clientWidth, needed);
-      notesCtx.clearRect(0, 0, notesCanvas.width, CANVAS_H);
+      const needed = NOTE_START + noteHistory.length * NOTE_SPACING + 60;
+      staffFg.width = Math.max(staffBg.width, needed);
+      fgCtx.clearRect(0, 0, staffFg.width, CANVAS_H);
 
-      // Clip region: notes only right of CLEF_ZONE
-      notesCtx.save();
-      notesCtx.beginPath();
-      notesCtx.rect(CLEF_ZONE + 2, 0, notesCanvas.width, CANVAS_H);
-      notesCtx.clip();
+      const cfg  = clef === "treble" ? TREBLE : BASS;
+      const refY = mainRefY();
 
-      const lines    = clef === "treble" ? TREBLE_LINES    : BASS_LINES;
-      const landmarks = clef === "treble" ? TREBLE_LANDMARKS : BASS_LANDMARKS;
-      const bottomLine = Math.min(...lines);
-      const topLine    = Math.max(...lines);
+      // Clip: notes only right of divider
+      fgCtx.save();
+      fgCtx.beginPath();
+      fgCtx.rect(CLEF_ZONE + 2, 0, staffFg.width, CANVAS_H);
+      fgCtx.clip();
 
-      const mainSty = centredStaffTop(CANVAS_H);
       noteHistory.forEach((entry, i) => {
-        const x  = NOTE_START_X + i * NOTE_SPACING;
-        const dp = diatonicPos(entry.noteName.replace("#",""), entry.octave);
+        const x  = NOTE_START + i * NOTE_SPACING;
+        const dp = diatonicStep(entry.noteName.replace("#",""), entry.octave);
         if (dp !== null) {
-          drawNotehead(notesCtx, x, dp, clef, lines, bottomLine, topLine, landmarks,
-            entry.noteName, entry.octave, i === noteHistory.length - 1, mainSty);
+          drawNote(fgCtx, x, dp, cfg, refY,
+            entry.noteName, entry.octave, i === noteHistory.length - 1);
         }
       });
 
-      notesCtx.restore();
-
+      fgCtx.restore();
       noteCountEl.textContent = `${noteHistory.length} note${noteHistory.length !== 1 ? "s" : ""}`;
       scrollToLatest();
     }
 
     function scrollToLatest() {
-      if (noteHistory.length === 0) return;
-      const latestX  = NOTE_START_X + (noteHistory.length - 1) * NOTE_SPACING;
-      const viewW    = staffWrap.clientWidth;
+      if (!noteHistory.length) return;
+      const latestX  = NOTE_START + (noteHistory.length - 1) * NOTE_SPACING;
+      const viewW    = staffClip.clientWidth;
       const overflow = latestX - viewW + 80;
-      notesCanvas.style.transform = overflow > 0 ? `translateX(-${overflow}px)` : "";
+      staffFg.style.transform = overflow > 0 ? `translateX(-${overflow}px)` : "";
     }
 
-    // ── Draw a single notehead ───────────────────────────────────────────────
-    function drawNotehead(ctx, x, dp, forClef, lines, bottomLine, topLine, landmarks,
-                          noteName, octave, isActive, staffTopY = STAFF_TOP_Y) {
-      const y          = dpToY(dp, forClef, staffTopY);
-      const r          = SPACE_H * 0.45;   // notehead radius ≈ half a space
-      const isLandmark = showLandmarks && landmarks.includes(dp);
-      const isAccid    = !isNatural(noteName);
-
-      // Ledger lines
-      ctx.strokeStyle = COL.ledger;
-      ctx.lineWidth   = 1.2;
-      const lp = dp % 2 === 0 ? 0 : 0;
-      // Below staff
-      for (let p = bottomLine - 2; p >= dp; p -= 2) {
-        const ly = dpToY(p, forClef, staffTopY);
-        ctx.beginPath();
-        ctx.moveTo(x - r * 1.8, ly); ctx.lineTo(x + r * 1.8, ly);
-        ctx.stroke();
-      }
-      // Above staff
-      for (let p = topLine + 2; p <= dp; p += 2) {
-        const ly = dpToY(p, forClef, staffTopY);
-        ctx.beginPath();
-        ctx.moveTo(x - r * 1.8, ly); ctx.lineTo(x + r * 1.8, ly);
-        ctx.stroke();
-      }
-
-      // Notehead fill
-      const fill = isActive   ? "#FFFFFF" :
-                   isLandmark ? COL.noteGold :
-                   isAccid    ? COL.noteAcc  : COL.noteFill;
-
-      ctx.beginPath();
-      ctx.ellipse(x, y, r * 1.25, r * 0.88, -0.15, 0, Math.PI * 2);
-      ctx.fillStyle = fill;
-      ctx.fill();
-
-      // Stem — direction: below middle line → stem up, above → stem down
-      const midLinePos = lines[Math.floor(lines.length / 2)];
-      const stemDir    = dp < midLinePos ? 1 : -1;
-      ctx.strokeStyle = fill;
-      ctx.lineWidth   = 1.5;
-      const stemX     = x + (stemDir === -1 ? r * 1.2 : -r * 1.2);
-      ctx.beginPath();
-      ctx.moveTo(stemX, y);
-      ctx.lineTo(stemX, y + stemDir * SPACE_H * 3.5);
-      ctx.stroke();
-
-      // Sharp sign
-      if (isAccid) {
-        ctx.fillStyle = COL.noteAcc;
-        ctx.font      = `bold ${r * 2.2}px sans-serif`;
-        ctx.textAlign = "center";
-        ctx.fillText("#", x - r * 2.4, y + r * 0.5);
-      }
-
-      // Note name label
-      if (showLabels) {
-        ctx.fillStyle = isLandmark ? COL.noteGold : "rgba(201,168,76,0.7)";
-        ctx.font      = `500 ${r * 2}px 'DM Sans', sans-serif`;
-        ctx.textAlign = "center";
-        ctx.fillText(noteName.replace("#",""), x, y + r + SPACE_H * 1.4);
-      }
-
-      // Octave hint (very faint)
-      ctx.fillStyle = "rgba(248,245,238,0.1)";
-      ctx.font      = `${r * 1.5}px monospace`;
-      ctx.textAlign = "center";
-      ctx.fillText(octave, x, y - SPACE_H * 3.2);
-    }
-
-    function addNote(noteName, octave) {
-      noteHistory.push({ noteName, octave });
+    function resizeAndDraw() {
+      const w = staffClip.clientWidth;
+      staffBg.width  = w;
+      staffBg.height = CANVAS_H;
+      staffFg.height = CANVAS_H;
+      redrawBg();
       redrawNotes();
+      drawQuizStaff();
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  QUIZ STAFF — drawn entirely on quizCanvas (no z-index juggling)
+    // ════════════════════════════════════════════════════════════════════════
+
+    const QUIZ_W = 320;
+    const QUIZ_H = 160;
+    const QUIZ_CLEF_ZONE = 60;
+    const QUIZ_NOTE_X    = QUIZ_W / 2 + 20;
+
+    // Quiz refY: centre staff in quiz canvas
+    function quizRefY() {
+      return Math.round(QUIZ_H / 2 + SP * 2) - 4;
+    }
+
+    function drawQuizStaff() {
+      quizCtx.clearRect(0, 0, QUIZ_W, QUIZ_H);
+      quizCtx.fillStyle = C.bg;
+      quizCtx.fillRect(0, 0, QUIZ_W, QUIZ_H);
+
+      const cfg  = quizUseClef === "treble" ? TREBLE : BASS;
+      const refY = quizRefY();
+
+      drawStaffLines(quizCtx, refY, 0, QUIZ_W);
+      drawClef(quizCtx, cfg, refY, QUIZ_H);
+      drawDividerLine(quizCtx, refY, QUIZ_CLEF_ZONE);
+
+      if (!quizNote) return;
+
+      const dp = diatonicStep(quizNote.n, quizNote.o);
+      if (dp === null) return;
+
+      // Clip: note only right of clef zone
+      quizCtx.save();
+      quizCtx.beginPath();
+      quizCtx.rect(QUIZ_CLEF_ZONE + 2, 0, QUIZ_W, QUIZ_H);
+      quizCtx.clip();
+
+      drawNote(quizCtx, QUIZ_NOTE_X, dp, cfg, refY,
+        quizNote.n, quizNote.o, false);
+
+      // If labels hidden, erase the label
+      if (!showLabels) {
+        const ny = dpToY(dp, cfg, refY);
+        quizCtx.fillStyle = C.bg;
+        quizCtx.fillRect(QUIZ_NOTE_X - 12, ny + 4, 30, 18);
+      }
+
+      quizCtx.restore();
+    }
+
+    // ── Quiz logic ───────────────────────────────────────────────────────────
+    const QUIZ_TREBLE = [
+      {n:"C",o:4},{n:"D",o:4},{n:"E",o:4},{n:"F",o:4},{n:"G",o:4},
+      {n:"A",o:4},{n:"B",o:4},{n:"C",o:5},{n:"D",o:5},{n:"E",o:5},
+    ];
+    const QUIZ_BASS = [
+      {n:"G",o:2},{n:"A",o:2},{n:"B",o:2},{n:"C",o:3},{n:"D",o:3},
+      {n:"E",o:3},{n:"F",o:3},{n:"G",o:3},{n:"A",o:3},{n:"B",o:3},
+    ];
+
+    function newQuizNote() {
+      quizUseClef  = quizUseClef === "treble" ? "bass" : "treble";
+      const pool   = quizUseClef === "treble" ? QUIZ_TREBLE : QUIZ_BASS;
+      quizNote     = pool[Math.floor(Math.random() * pool.length)];
+      quizAnswered = false;
+      quizStatus.innerHTML = `<p class="font-display text-2xl text-ivory/40 italic">Waiting…</p>`;
+      quizClefLbl.textContent = quizUseClef === "treble" ? "𝄞 Treble clef" : "𝄢 Bass clef";
+      drawQuizStaff();
+    }
+
+    function checkQuizAnswer(noteName, octave) {
+      if (!quizNote || quizAnswered) return;
+      if (noteName.replace("#","") === quizNote.n && octave === quizNote.o) {
+        quizAnswered = true; quizCorrect++;
+        document.getElementById("quiz-correct").textContent = quizCorrect;
+        quizStatus.innerHTML = `<p class="font-display text-2xl text-green-400">✓ ${quizNote.n}${quizNote.o}!</p>`;
+        setTimeout(newQuizNote, 1800);
+      } else if (isNatural(noteName)) {
+        quizWrong++;
+        document.getElementById("quiz-wrong").textContent = quizWrong;
+        quizStatus.innerHTML = `<p class="font-display text-lg text-red-400">Not quite — look at the staff!</p>`;
+      }
     }
 
     // ── Audio ────────────────────────────────────────────────────────────────
-    function getCtx() {
+    function getAudioCtx() {
       if (!audioCtx) {
         audioCtx = new AudioContext();
         recDest  = audioCtx.createMediaStreamDestination();
@@ -602,7 +629,7 @@ const jsonLd = {
     }
 
     function playAndNotate(noteName, octave) {
-      const ctx  = getCtx();
+      const ctx  = getAudioCtx();
       const osc  = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "triangle";
@@ -613,7 +640,9 @@ const jsonLd = {
       gain.connect(ctx.destination);
       if (recDest) gain.connect(recDest);
       osc.start(); osc.stop(ctx.currentTime + 1.3);
-      addNote(noteName, octave);
+
+      noteHistory.push({ noteName, octave });
+      redrawNotes();
       playingInd.style.background = "#C9A84C";
       setTimeout(() => { playingInd.style.background = ""; }, 150);
       checkQuizAnswer(noteName, octave);
@@ -624,16 +653,15 @@ const jsonLd = {
     const BLACK_SEMI = [1,3,-1,6,8,10,-1];
     const OCTAVES = 4, KEY_W = 36;
 
-    function buildPianoKeys() {
+    function buildPiano() {
       pianoInner.innerHTML = "";
       const whites = [];
-      for (let o = 0; o < OCTAVES; o++) {
+      for (let o = 0; o < OCTAVES; o++)
         WHITE_SEMI.forEach(s => whites.push({
-          freq:   noteFreq(NOTE_NAMES[s], octaveBase - 1 + o),
-          name:   NOTE_NAMES[s],
-          octave: octaveBase - 1 + o,
+          freq: noteFreq(NOTE_NAMES[s], octaveBase - 1 + o),
+          name: NOTE_NAMES[s], octave: octaveBase - 1 + o,
         }));
-      }
+
       pianoInner.style.width  = whites.length * (KEY_W + 1) + "px";
       pianoInner.style.height = "100%";
 
@@ -642,7 +670,7 @@ const jsonLd = {
         el.className = "piano-key white-key absolute bottom-0 rounded-b-md border border-gray-700 cursor-pointer transition-colors duration-75 bg-ivory hover:bg-gold/20 flex items-end justify-center pb-1";
         el.style.cssText = `width:${KEY_W}px;left:${i*(KEY_W+1)}px;top:0;bottom:0;`;
         el.innerHTML = `<span style="font-size:8px" class="text-ebony/20 font-mono pointer-events-none select-none">${k.name}${k.octave}</span>`;
-        el.dataset.freq = k.freq; el.dataset.note = k.name; el.dataset.octave = k.octave;
+        el.dataset.note = k.name; el.dataset.octave = k.octave;
         pianoInner.appendChild(el);
       });
 
@@ -652,9 +680,7 @@ const jsonLd = {
           const el = document.createElement("div");
           el.className = "piano-key black-key absolute rounded-b-md z-10 cursor-pointer transition-colors duration-75 bg-ebony hover:bg-gray-700";
           el.style.cssText = `width:${KEY_W*0.6}px;left:${(o*7+wi)*(KEY_W+1)+KEY_W*0.7}px;top:0;height:60%;box-shadow:0 4px 8px rgba(0,0,0,.8);`;
-          el.dataset.freq = noteFreq(NOTE_NAMES[s], octaveBase-1+o);
-          el.dataset.note = NOTE_NAMES[s];
-          el.dataset.octave = octaveBase - 1 + o;
+          el.dataset.note = NOTE_NAMES[s]; el.dataset.octave = octaveBase - 1 + o;
           pianoInner.appendChild(el);
         });
       }
@@ -668,8 +694,8 @@ const jsonLd = {
 
       function getKeyAt(x, y) {
         const rect = pianoOuter.getBoundingClientRect();
-        const rx   = x - rect.left + pianoOuter.scrollLeft;
-        const ry   = y - rect.top;
+        const rx = x - rect.left + pianoOuter.scrollLeft;
+        const ry = y - rect.top;
         for (const k of pianoInner.querySelectorAll(".black-key")) {
           const kl = parseFloat(k.style.left), kw = parseFloat(k.style.width);
           if (rx >= kl && rx <= kl + kw && ry <= pianoInner.clientHeight * 0.6) return k;
@@ -693,7 +719,6 @@ const jsonLd = {
         el.addEventListener("mousedown",  e => { e.preventDefault(); trigger(el); });
         el.addEventListener("touchstart", e => { e.preventDefault(); trigger(el); }, { passive:false });
       });
-
       pianoOuter.addEventListener("mousemove", e => {
         if (e.buttons !== 1) { lastEl = null; return; }
         trigger(getKeyAt(e.clientX, e.clientY));
@@ -701,10 +726,7 @@ const jsonLd = {
       pianoOuter.addEventListener("mouseup",    () => lastEl = null);
       pianoOuter.addEventListener("mouseleave", () => lastEl = null);
       pianoOuter.addEventListener("touchmove",  e => {
-        Array.from(e.changedTouches).forEach(t => {
-          const el = getKeyAt(t.clientX, t.clientY);
-          if (el) trigger(el);
-        });
+        Array.from(e.changedTouches).forEach(t => { trigger(getKeyAt(t.clientX, t.clientY)); });
       });
       pianoOuter.addEventListener("touchend", () => lastEl = null);
     }
@@ -725,93 +747,18 @@ const jsonLd = {
     });
 
     document.getElementById("oct-down").addEventListener("click", () => {
-      if (octaveBase > 2) { octaveBase--; octLabel.textContent = octaveBase; buildPianoKeys(); }
+      if (octaveBase > 2) { octaveBase--; octLabel.textContent = octaveBase; buildPiano(); }
     });
     document.getElementById("oct-up").addEventListener("click", () => {
-      if (octaveBase < 6) { octaveBase++; octLabel.textContent = octaveBase; buildPianoKeys(); }
+      if (octaveBase < 6) { octaveBase++; octLabel.textContent = octaveBase; buildPiano(); }
     });
 
-    // ── Quiz ─────────────────────────────────────────────────────────────────
-    const QUIZ_TREBLE = [
-      {n:"C",o:4},{n:"D",o:4},{n:"E",o:4},{n:"F",o:4},{n:"G",o:4},
-      {n:"A",o:4},{n:"B",o:4},{n:"C",o:5},{n:"D",o:5},{n:"E",o:5},
-    ];
-    const QUIZ_BASS = [
-      {n:"G",o:2},{n:"A",o:2},{n:"B",o:2},{n:"C",o:3},{n:"D",o:3},
-      {n:"E",o:3},{n:"F",o:3},{n:"G",o:3},{n:"A",o:3},{n:"B",o:3},
-    ];
-
-    const QUIZ_H         = 160;
-    const QUIZ_VF_W      = 280;
-    const QUIZ_CLEF_ZONE = 65;
-
-    function getQuizSty() { return centredStaffTop(QUIZ_H); }
-
-    function rebuildQuizVF() {
-      const qSty = getQuizSty();
-      buildVFStaff(quizVFLayer, QUIZ_VF_W, QUIZ_H, quizUseClef, qSty);
-      setTimeout(() => drawDivider(quizVFLayer, QUIZ_H, qSty), 30);
-      quizCanvas.width  = QUIZ_VF_W;
-      quizCanvas.height = QUIZ_H;
-      drawQuizNote();
-    }
-
-    function newQuizNote() {
-      quizUseClef  = quizUseClef === "treble" ? "bass" : "treble";
-      const pool   = quizUseClef === "treble" ? QUIZ_TREBLE : QUIZ_BASS;
-      quizNote     = pool[Math.floor(Math.random() * pool.length)];
-      quizAnswered = false;
-      quizStatus.innerHTML = `<p class="font-display text-2xl text-ivory/40 italic">Waiting…</p>`;
-      quizClefLbl.textContent = quizUseClef === "treble" ? "𝄞 Treble clef" : "𝄢 Bass clef";
-      rebuildQuizVF();
-    }
-
-    function drawQuizNote() {
-      quizCtx.clearRect(0, 0, QUIZ_VF_W, QUIZ_H);
-      if (!quizNote) return;
-
-      const lines     = quizUseClef === "treble" ? TREBLE_LINES    : BASS_LINES;
-      const landmarks = quizUseClef === "treble" ? TREBLE_LANDMARKS : BASS_LANDMARKS;
-      const bottomLine = Math.min(...lines);
-      const topLine    = Math.max(...lines);
-      const dp         = diatonicPos(quizNote.n, quizNote.o);
-      if (dp === null) return;
-
-      // Clip to right of divider
-      quizCtx.save();
-      quizCtx.beginPath();
-      quizCtx.rect(QUIZ_CLEF_ZONE + 2, 0, QUIZ_VF_W, QUIZ_H);
-      quizCtx.clip();
-
-      const qSty = getQuizSty();
-      drawNotehead(quizCtx, QUIZ_VF_W / 2 + 10, dp, quizUseClef,
-        lines, bottomLine, topLine, landmarks,
-        quizNote.n, quizNote.o, false, qSty);
-
-      // If labels hidden, erase the label so quiz is harder
-      if (!showLabels) {
-        const ny = dpToY(dp, quizUseClef, qSty);
-        quizCtx.fillStyle = COL.bg;
-        quizCtx.fillRect(QUIZ_VF_W/2 - 5, ny + 8, 50, 20);
-      }
-      quizCtx.restore();
-    }
-
-    function checkQuizAnswer(noteName, octave) {
-      if (!quizNote || quizAnswered) return;
-      if (noteName.replace("#","") === quizNote.n && octave === quizNote.o) {
-        quizAnswered = true; quizCorrect++;
-        document.getElementById("quiz-correct").textContent = quizCorrect;
-        quizStatus.innerHTML = `<p class="font-display text-2xl text-green-400">✓ ${quizNote.n}${quizNote.o}!</p>`;
-        setTimeout(newQuizNote, 1800);
-      } else if (isNatural(noteName)) {
-        quizWrong++;
-        document.getElementById("quiz-wrong").textContent = quizWrong;
-        quizStatus.innerHTML = `<p class="font-display text-lg text-red-400">Not quite — look at the staff!</p>`;
-      }
-    }
-
     // ── Recorder ─────────────────────────────────────────────────────────────
+    const recBtn     = document.getElementById("rec-btn");
+    const recLabel   = document.getElementById("rec-label");
+    const recTimerEl = document.getElementById("rec-timer");
+    const recDownload= document.getElementById("rec-download");
+
     recBtn.addEventListener("click", () => {
       if (isRecording) {
         mediaRec.stop(); isRecording = false;
@@ -819,7 +766,7 @@ const jsonLd = {
         recBtn.classList.remove("border-red-500/50","text-red-400");
         clearInterval(recInterval);
       } else {
-        getCtx();
+        getAudioCtx();
         mediaRec = new MediaRecorder(recDest.stream); recChunks = [];
         mediaRec.ondataavailable = e => { if(e.data.size>0) recChunks.push(e.data); };
         mediaRec.onstop = () => {
@@ -848,39 +795,49 @@ const jsonLd = {
         });
         legendTreble.classList.toggle("hidden", clef !== "treble");
         legendBass.classList.toggle("hidden",   clef !== "bass");
-        resizeAndDraw();
+        redrawBg(); redrawNotes();
       });
     });
 
     showLabelsEl.addEventListener("change", e => {
-      showLabels = e.target.checked; redrawNotes(); drawQuizNote();
+      showLabels = e.target.checked; redrawNotes(); drawQuizStaff();
     });
     showLandEl.addEventListener("change", e => {
-      showLandmarks = e.target.checked; redrawNotes();
+      showLandmarks = e.target.checked; redrawNotes(); drawQuizStaff();
     });
-    clearBtn.addEventListener("click", () => {
+    document.getElementById("clear-btn").addEventListener("click", () => {
       noteHistory = [];
-      notesCanvas.style.transform = "";
+      staffFg.style.transform = "";
       redrawNotes();
     });
     quizNextBtn.addEventListener("click", newQuizNote);
 
     // ── Init ─────────────────────────────────────────────────────────────────
+    // Load Noto Music font for proper clef glyphs, then draw
+    // Fallback: if font doesn't load, FreeSerif or generic serif draws the glyphs
+    const fontFace = new FontFace(
+      "Noto Music",
+      "url(https://fonts.gstatic.com/s/notomusic/v20/W9S0n5kWhSfBQT0dEKByWg.woff2)"
+    );
+    fontFace.load().then(font => {
+      document.fonts.add(font);
+      fontLoaded = true;
+      resizeAndDraw();
+    }).catch(() => {
+      // Font failed — serif fallback still renders Unicode music glyphs
+      resizeAndDraw();
+    });
+
     window.addEventListener("resize", resizeAndDraw);
-    resizeAndDraw();
-    buildPianoKeys();
+    buildPiano();
     newQuizNote();
 
   })();
-  }); // end window.onload
   </script>
 
   <style>
     .white-key.active { background: rgba(201,168,76,0.4) !important; }
     .black-key.active { background: rgba(201,168,76,0.7) !important; }
-    /* Make VexFlow SVG transparent bg so our dark surface shows through */
-    #staff-vf-layer svg,
-    #quiz-vf-layer  svg { background: transparent !important; }
   </style>
 
 </Layout>
