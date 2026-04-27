@@ -1,0 +1,593 @@
+---
+import Layout from "../layouts/Layout.astro";
+import CoffeeButton from "../components/CoffeeButton.astro";
+---
+
+<Layout
+  title="Jianpu to Staff Notation Converter | Big Piano Small Piano"
+  description="Convert numbered notation (简谱 jianpu) to treble and bass clef staff notation. Upload an image or type notes manually. Free tool from Big Piano Small Piano."
+>
+
+  <!-- ── Hero ── -->
+  <section class="relative py-14 px-4 text-center border-b border-surface-border overflow-hidden">
+    <div class="absolute inset-0 pointer-events-none opacity-20"
+      style="background: radial-gradient(ellipse 60% 50% at 50% 0%, #C9A84C22 0%, transparent 70%);">
+    </div>
+    <div class="relative max-w-2xl mx-auto">
+      <p class="font-sans text-gold text-xs tracking-[0.2em] uppercase mb-3 opacity-80">Free Tool</p>
+      <h1 class="font-serif text-4xl md:text-5xl text-ivory mb-4 leading-tight">
+        简谱 <span class="text-gold">→</span> Staff Notation
+      </h1>
+      <p class="font-sans text-ivory/60 text-sm md:text-base max-w-xl mx-auto leading-relaxed">
+        Type your jianpu numbered notation and instantly see it rendered as treble or bass clef sheet music. Includes chord analysis, lyrics, and export.
+      </p>
+    </div>
+  </section>
+
+  <!-- ── Main tool ── -->
+  <section class="max-w-4xl mx-auto px-4 py-10">
+
+    <!-- Upload zone -->
+    <div
+      id="drop-zone"
+      class="relative border border-dashed border-surface-border rounded-lg p-8 text-center cursor-pointer transition-all duration-200 mb-6 group hover:border-gold/60 hover:bg-surface/60"
+      style="background: #141414;"
+    >
+      <input type="file" id="file-input" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+      <div class="text-3xl mb-2">🎼</div>
+      <p class="font-sans text-ivory/70 text-sm font-medium group-hover:text-ivory/90 transition-colors">
+        Upload a jianpu image for reference
+      </p>
+      <p class="font-sans text-ivory/30 text-xs mt-1">PNG, JPG, WEBP</p>
+    </div>
+
+    <div id="preview-wrap" class="hidden mb-6 text-center">
+      <img id="preview-img" alt="Jianpu reference" class="max-h-52 max-w-full mx-auto rounded border border-surface-border" />
+    </div>
+
+    <!-- Divider -->
+    <div class="flex items-center gap-3 mb-5">
+      <div class="flex-1 h-px bg-surface-border"></div>
+      <span class="font-sans text-ivory/30 text-xs tracking-widest uppercase">Enter Jianpu</span>
+      <div class="flex-1 h-px bg-surface-border"></div>
+    </div>
+
+    <!-- Input hint -->
+    <div class="flex flex-wrap gap-x-3 gap-y-1 mb-3">
+      {[
+        ["1–7", "Do–Ti"],
+        ["0", "rest"],
+        ["-", "hold beat"],
+        ["|", "bar line"],
+        ["1'", "high octave"],
+        ["1,", "low octave"],
+        ["1_", "eighth note"],
+      ].map(([code, label]) => (
+        <span class="font-sans text-ivory/40 text-xs">
+          <code class="bg-surface rounded px-1.5 py-0.5 text-gold/80 font-mono text-xs">{code}</code>
+          {" "}{label}
+        </span>
+      ))}
+    </div>
+
+    <!-- Jianpu textarea -->
+    <textarea
+      id="jianpu-input"
+      rows="3"
+      placeholder="1 2 3 4 | 5 - - - | 6 5 4 3 | 2 - - -"
+      class="w-full font-mono text-sm text-ivory/90 bg-surface border border-surface-border rounded-lg px-4 py-3 resize-y min-h-[80px] placeholder-ivory/20 focus:outline-none focus:border-gold/50 transition-colors"
+    ></textarea>
+
+    <!-- Lyrics -->
+    <input
+      type="text"
+      id="lyrics-input"
+      placeholder="Lyrics — space-separated syllables (optional)"
+      class="w-full font-mono text-sm text-ivory/80 bg-surface border border-surface-border rounded-lg px-4 py-2.5 mt-3 placeholder-ivory/20 focus:outline-none focus:border-gold/50 transition-colors"
+    />
+
+    <!-- Options row -->
+    <div class="flex flex-wrap gap-3 mt-5 items-end">
+
+      {[
+        { id: "key-select", label: "Key (1=)", opts: ["C","G","F","D","A","Bb","Eb"] },
+        { id: "time-select", label: "Time", opts: ["4/4","3/4","2/4"] },
+        { id: "clef-select", label: "Clef", opts: ["treble","both","bass"] },
+        { id: "perrow-select", label: "Bars/row", opts: ["3","4","5","6"] },
+      ].map(({ id, label, opts }) => (
+        <div class="flex flex-col gap-1">
+          <label class="font-sans text-ivory/40 text-[10px] uppercase tracking-widest" for={id}>{label}</label>
+          <select
+            id={id}
+            class="font-sans text-sm text-ivory bg-surface border border-surface-border rounded px-3 py-1.5 cursor-pointer focus:outline-none focus:border-gold/50"
+          >
+            {opts.map((o, i) => (
+              <option value={o} selected={i === (id === "perrow-select" ? 1 : 0)}>{o}</option>
+            ))}
+          </select>
+        </div>
+      ))}
+
+      <!-- Chord checkbox -->
+      <div class="flex flex-col gap-1">
+        <label class="font-sans text-ivory/40 text-[10px] uppercase tracking-widest">Extras</label>
+        <label class="flex items-center gap-2 font-sans text-sm text-ivory/70 cursor-pointer py-1.5">
+          <input type="checkbox" id="show-chords" checked class="accent-gold" />
+          Chord analysis
+        </label>
+      </div>
+
+      <!-- Convert button -->
+      <button
+        id="convert-btn"
+        class="ml-auto font-sans font-semibold text-sm px-6 py-2 rounded transition-all duration-200"
+        style="background: #C9A84C; color: #0D0D0D;"
+        onmouseenter="this.style.background='#D4B565'"
+        onmouseleave="this.style.background='#C9A84C'"
+      >
+        Convert →
+      </button>
+    </div>
+
+    <!-- Status -->
+    <div id="status" class="mt-3 min-h-5 font-sans text-sm text-ivory/40 italic"></div>
+
+    <!-- Output -->
+    <div id="output-section" class="hidden mt-6">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="flex-1 h-px bg-surface-border"></div>
+        <span class="font-sans text-gold text-xs tracking-widest uppercase">Staff Notation</span>
+        <div class="flex-1 h-px bg-surface-border"></div>
+      </div>
+
+      <!-- SVG scroll container -->
+      <div
+        id="notation-wrap"
+        class="rounded-lg border border-surface-border overflow-x-auto"
+        style="background: white; padding: 16px;"
+      >
+        <svg id="staff-svg" style="display:block;"></svg>
+      </div>
+
+      <p id="scroll-hint" class="hidden mt-2 text-center font-sans text-ivory/30 text-xs">← Scroll to see all bars →</p>
+
+      <!-- Export buttons -->
+      <div class="flex gap-3 mt-4 flex-wrap">
+        <button
+          id="export-png-btn"
+          class="font-sans text-xs font-semibold px-4 py-2 rounded border border-surface-border text-ivory/60 hover:text-gold hover:border-gold/40 transition-all"
+        >
+          ⬇ Save PNG
+        </button>
+        <button
+          id="export-pdf-btn"
+          class="font-sans text-xs font-semibold px-4 py-2 rounded border border-surface-border text-ivory/60 hover:text-gold hover:border-gold/40 transition-all"
+        >
+          ⬇ Save PDF
+        </button>
+      </div>
+
+      <!-- Legend -->
+      <div class="mt-5 border-l-2 border-gold/30 pl-4 py-1">
+        <p class="font-sans text-ivory/30 text-xs leading-6">
+          <code class="bg-surface rounded px-1 text-gold/60">1</code>=Do &nbsp;
+          <code class="bg-surface rounded px-1 text-gold/60">2</code>=Re &nbsp;
+          <code class="bg-surface rounded px-1 text-gold/60">3</code>=Mi &nbsp;
+          <code class="bg-surface rounded px-1 text-gold/60">4</code>=Fa &nbsp;
+          <code class="bg-surface rounded px-1 text-gold/60">5</code>=Sol &nbsp;
+          <code class="bg-surface rounded px-1 text-gold/60">6</code>=La &nbsp;
+          <code class="bg-surface rounded px-1 text-gold/60">7</code>=Ti &nbsp;|&nbsp;
+          <code class="bg-surface rounded px-1 text-gold/60">-</code>=hold &nbsp;|&nbsp;
+          <code class="bg-surface rounded px-1 text-gold/60">'</code>=+octave &nbsp;
+          <code class="bg-surface rounded px-1 text-gold/60">,</code>=-octave
+        </p>
+      </div>
+    </div>
+
+    <!-- Coffee button -->
+    <div class="mt-12 pt-8 border-t border-surface-border">
+      <CoffeeButton
+        variant="inline"
+        message="Enjoying the free learning tools? A coffee helps keep them free."
+      />
+    </div>
+
+  </section>
+</Layout>
+
+<script>
+// ── Constants ─────────────────────────────────────────────────────────────────
+const KEY_OFFSETS  = {C:0,G:7,F:5,D:2,A:9,Bb:10,Eb:3};
+const SOLFEGE      = [0,2,4,5,7,9,11];
+const NOTE_NAMES   = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const FLAT_NAMES   = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+const FLAT_KEYS    = new Set(['F','Bb','Eb','Ab','Db','Gb']);
+const DIATONIC     = {C:0,D:1,E:2,F:3,G:4,A:5,B:6};
+const SHARP_COUNT  = {C:0,G:1,D:2,A:3,E:4,B:5};
+const FLAT_COUNT   = {C:0,F:1,Bb:2,Eb:3,Ab:4,Db:5,Gb:6};
+const DUR_MAP      = {1:'q',2:'h',3:'hd',4:'w'};
+const DUR_BEATS    = {w:4,hd:3,h:2,q:1,'8':0.5,'16':0.25};
+const SVG_NS       = 'http://www.w3.org/2000/svg';
+const PAPER_W      = 800;
+const MARGIN       = 14;
+const STEP_H       = 5;
+const SPACE_H      = 10;
+const STAFF_H      = 40;
+const STEM_L       = 32;
+
+// ── Parser ────────────────────────────────────────────────────────────────────
+function parseJianpu(text) {
+  const tokens = text.trim().split(/\s+/);
+  const tagged = [];
+  for (const tok of tokens) {
+    if (tok==='|'){tagged.push({t:'bar'});continue;}
+    if (tok==='-'){tagged.push({t:'dash'});continue;}
+    let raw=tok, octave=0, dur='q';
+    const ul=(raw.match(/_/g)||[]).length;
+    raw=raw.replace(/_/g,'');
+    if(ul>=2)dur='16'; else if(ul===1)dur='8';
+    if(raw.endsWith("'")){octave=1;raw=raw.slice(0,-1);}
+    else if(raw.endsWith(',')){octave=-1;raw=raw.slice(0,-1);}
+    const num=parseInt(raw,10);
+    if(!isNaN(num)&&num>=0&&num<=7) tagged.push({t:'note',num,octave,dur});
+  }
+  const merged=[]; let i=0;
+  while(i<tagged.length){
+    const tok=tagged[i];
+    if(tok.t==='note'&&tok.dur==='q'){
+      let d=0,j=i+1;
+      while(j<tagged.length&&tagged[j].t==='dash'){d++;j++;}
+      merged.push({...tok,dur:DUR_MAP[Math.min(d+1,4)]||'w'});
+      i=j;
+    } else {merged.push(tok);i++;}
+  }
+  const measures=[]; let cur=[];
+  for(const tok of merged){
+    if(tok.t==='bar'){if(cur.length){measures.push({notes:[...cur]});cur=[];}}
+    else if(tok.t==='note') cur.push(tok);
+  }
+  if(cur.length) measures.push({notes:[...cur]});
+  return measures;
+}
+
+// ── Pitch ─────────────────────────────────────────────────────────────────────
+function trebleStep(n,o){const b=n.replace('#','').replace('b','');return(o-4)*7+(DIATONIC[b]??0)-2;}
+function bassStep(n,o){const b=n.replace('#','').replace('b','');return(o-2)*7+(DIATONIC[b]??0)-4;}
+function buildScaleMap(key){
+  const useFlats=FLAT_KEYS.has(key),rootSemi=KEY_OFFSETS[key];
+  const names=useFlats?FLAT_NAMES:NOTE_NAMES;
+  const rootBase=names[rootSemi].replace('#','').replace('b','');
+  const rootDiat=DIATONIC[rootBase];
+  let octOff=0,prevDiat=rootDiat-1;
+  const map=[];
+  for(let i=0;i<7;i++){
+    const semi=(SOLFEGE[i]+rootSemi)%12,nn=names[semi];
+    const currDiat=DIATONIC[nn.replace('#','').replace('b','')];
+    if(currDiat<=prevDiat&&i>0) octOff++;
+    map.push({nn,octOff}); prevDiat=currDiat;
+  }
+  return map;
+}
+
+// ── Chord detection ───────────────────────────────────────────────────────────
+const TRIADS=[
+  {roman:'I',degrees:[1,3,5],weight:10},{roman:'IV',degrees:[4,6,1],weight:9},
+  {roman:'V',degrees:[5,7,2],weight:9},{roman:'vi',degrees:[6,1,3],weight:8},
+  {roman:'ii',degrees:[2,4,6],weight:7},{roman:'iii',degrees:[3,5,7],weight:5},
+  {roman:'vii°',degrees:[7,2,4],weight:3},
+];
+function detectChord(notes,key){
+  if(!notes.length) return '';
+  const offset=KEY_OFFSETS[key],pcW={};
+  let bassNum=null;
+  for(const n of notes){
+    if(!n.num) continue;
+    const pc=(SOLFEGE[n.num-1]+offset)%12;
+    pcW[pc]=(pcW[pc]||0)+(DUR_BEATS[n.dur||'q']||1);
+    if(bassNum===null) bassNum=n.num;
+  }
+  if(!Object.keys(pcW).length) return '';
+  const total=Object.values(pcW).reduce((a,b)=>a+b,0);
+  const bassPC=bassNum?(SOLFEGE[bassNum-1]+offset)%12:-1;
+  let best=null,bestScore=-1;
+  for(const t of TRIADS){
+    const tPCs=t.degrees.map(d=>(SOLFEGE[d-1]+offset)%12);
+    const mB=tPCs.reduce((s,pc)=>s+(pcW[pc]||0),0);
+    const sc=(mB/total*0.5+tPCs.filter(pc=>pcW[pc]).length/3*0.35+(tPCs[0]===bassPC?0.5:0)*0.15)*t.weight;
+    if(sc>bestScore){bestScore=sc;best=t;}
+  }
+  return best?best.roman:'';
+}
+function chordLabel(roman,key){
+  const d2s={'I':0,'ii':2,'iii':4,'IV':5,'V':7,'vi':9,'vii°':11};
+  const offset=KEY_OFFSETS[key],names=FLAT_KEYS.has(key)?FLAT_NAMES:NOTE_NAMES;
+  const root=names[((d2s[roman]??0)+offset)%12];
+  const q=roman.includes('°')?'dim':['ii','iii','vi'].includes(roman)?'m':'';
+  return root+q;
+}
+
+// ── SVG helpers ───────────────────────────────────────────────────────────────
+function el(tag,attrs,text){
+  const e=document.createElementNS(SVG_NS,tag);
+  for(const[k,v] of Object.entries(attrs)) e.setAttribute(k,String(v));
+  if(text!==undefined) e.textContent=text;
+  return e;
+}
+function ln(x1,y1,x2,y2,sw=1){return el('line',{x1,y1,x2,y2,stroke:'#000','stroke-width':sw});}
+function sY(sTop,step){return sTop+STAFF_H-step*STEP_H;}
+
+function drawStaff(g,x,y,w){for(let i=0;i<5;i++)g.appendChild(ln(x,y+i*SPACE_H,x+w,y+i*SPACE_H));}
+function drawBarLine(g,x,y){g.appendChild(ln(x,y,x,y+STAFF_H,1.2));}
+function drawFinalBar(g,x,y){g.appendChild(ln(x,y,x,y+STAFF_H,1));g.appendChild(ln(x+4,y,x+4,y+STAFF_H,3.5));}
+
+function drawTrebleClef(g,x,y){
+  g.appendChild(el('text',{x:x+1,y:y+STAFF_H+6,'font-family':'serif','font-size':60,fill:'#000'},'𝄞'));
+}
+function drawBassClef(g,x,y){
+  g.appendChild(el('text',{x:x+2,y:y+STAFF_H-6,'font-family':'serif','font-size':34,fill:'#000'},'𝄢'));
+}
+function drawTimeSig(g,x,y,ts){
+  const[n,d]=ts.split('/');
+  g.appendChild(el('text',{x,y:y+17,'font-family':'serif','font-size':20,'font-weight':'bold',fill:'#000','text-anchor':'middle'},n));
+  g.appendChild(el('text',{x,y:y+37,'font-family':'serif','font-size':20,'font-weight':'bold',fill:'#000','text-anchor':'middle'},d));
+}
+function drawKeySig(g,x,y,key,ct){
+  const shT=[8,5,9,6,3,7,4],flT=[4,7,3,6,2,5,8];
+  const shB=[6,3,7,4,1,5,2],flB=[2,5,1,4,0,3,6];
+  const ns=SHARP_COUNT[key]||0,nf=FLAT_COUNT[key]||0;
+  const steps=ct==='bass'?(ns>0?shB:flB):(ns>0?shT:flT);
+  const count=ns||nf,sym=ns>0?'♯':'♭';
+  for(let i=0;i<count;i++)
+    g.appendChild(el('text',{x:x+i*10,y:y+STAFF_H-steps[i]*STEP_H+5,'font-family':'serif','font-size':14,fill:'#000'},sym));
+}
+function drawLedgerLines(g,cx,sTop,step){
+  if(step<=-2)for(let s=-2;s>=step;s-=2)g.appendChild(ln(cx-8,sY(sTop,s),cx+8,sY(sTop,s)));
+  if(step>=10)for(let s=10;s<=step;s+=2)g.appendChild(ln(cx-8,sY(sTop,s),cx+8,sY(sTop,s)));
+}
+function drawNote(g,cx,sTop,step,dur){
+  const ny=sY(sTop,step),up=step<5,sx=up?cx+5.5:cx-5.5;
+  drawLedgerLines(g,cx,sTop,step);
+  if(dur==='w'){
+    g.appendChild(el('ellipse',{cx,cy:ny,rx:7,ry:5,fill:'none',stroke:'#000','stroke-width':1.8}));
+  }else if(dur==='h'||dur==='hd'){
+    g.appendChild(el('ellipse',{cx,cy:ny,rx:7,ry:5,fill:'none',stroke:'#000','stroke-width':1.8,transform:`rotate(-20,${cx},${ny})`}));
+    g.appendChild(ln(sx,ny,sx,up?ny-STEM_L:ny+STEM_L,1.5));
+    if(dur==='hd')g.appendChild(el('circle',{cx:cx+12,cy:ny,r:2.5,fill:'#000'}));
+  }else if(dur==='q'){
+    g.appendChild(el('ellipse',{cx,cy:ny,rx:6.5,ry:4.5,fill:'#000',transform:`rotate(-20,${cx},${ny})`}));
+    g.appendChild(ln(sx,ny,sx,up?ny-STEM_L:ny+STEM_L,1.5));
+  }else if(dur==='8'){
+    g.appendChild(el('ellipse',{cx,cy:ny,rx:6.5,ry:4.5,fill:'#000',transform:`rotate(-20,${cx},${ny})`}));
+    const sy2=up?ny-STEM_L:ny+STEM_L;
+    g.appendChild(ln(sx,ny,sx,sy2,1.5));
+    g.appendChild(el('path',{d:up?`M${sx},${sy2} C${sx+16},${sy2+10} ${sx+14},${sy2+20} ${sx},${sy2+24}`:`M${sx},${sy2} C${sx+16},${sy2-10} ${sx+14},${sy2-20} ${sx},${sy2-24}`,fill:'none',stroke:'#000','stroke-width':1.5}));
+  }else if(dur==='16'){
+    g.appendChild(el('ellipse',{cx,cy:ny,rx:6.5,ry:4.5,fill:'#000',transform:`rotate(-20,${cx},${ny})`}));
+    const sy2=up?ny-STEM_L:ny+STEM_L,dv=up?1:-1;
+    g.appendChild(ln(sx,ny,sx,sy2,1.5));
+    g.appendChild(el('path',{d:`M${sx},${sy2} C${sx+14},${sy2+dv*8} ${sx+12},${sy2+dv*16} ${sx},${sy2+dv*20}`,fill:'none',stroke:'#000','stroke-width':1.5}));
+    g.appendChild(el('path',{d:`M${sx},${sy2+dv*8} C${sx+14},${sy2+dv*16} ${sx+12},${sy2+dv*24} ${sx},${sy2+dv*28}`,fill:'none',stroke:'#000','stroke-width':1.5}));
+  }
+}
+function drawRest(g,cx,sTop,dur){
+  const my=sTop+SPACE_H*2;
+  if(dur==='w')g.appendChild(el('rect',{x:cx-9,y:my-3,width:18,height:6,fill:'#000'}));
+  else if(dur==='h'||dur==='hd'){
+    g.appendChild(el('rect',{x:cx-9,y:my+2,width:18,height:5,fill:'#000'}));
+    if(dur==='hd')g.appendChild(el('circle',{cx:cx+14,cy:my+4,r:2.5,fill:'#000'}));
+  }else g.appendChild(el('text',{x:cx-5,y:my+8,'font-family':'serif','font-size':22,fill:'#000'},dur==='q'?'𝄽':'𝄾'));
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderStaff(svgNode,measures,clef,key,timeSig,perRow,lyricWords=[],chords=[]){
+  svgNode.innerHTML='';
+  const scaleMap=buildScaleMap(key);
+  const CLEF_W=42,KEYSIG_W=(SHARP_COUNT[key]||FLAT_COUNT[key]||0)*10,TSIG_W=28,PAD=10;
+  const FIRST_OH=CLEF_W+KEYSIG_W+TSIG_W+PAD,ROW_OH=FIRST_OH;
+  const normalMW=Math.max(90,Math.floor((PAPER_W-2*MARGIN-FIRST_OH)/perRow));
+  const firstMW=normalMW+FIRST_OH;
+  const HAS_LYRICS=lyricWords.length>0,HAS_CHORDS=chords.length>0;
+  const EXTRA_H=(HAS_LYRICS?18:0)+(HAS_CHORDS?18:0);
+  const TREBLE_TOP=28,BASS_GAP=60,BASS_TOP=TREBLE_TOP+STAFF_H+BASS_GAP;
+  const ROW_H=clef==='both'?BASS_TOP+STAFF_H+32+EXTRA_H:TREBLE_TOP+STAFF_H+32+EXTRA_H;
+  const rows=Math.ceil(measures.length/perRow),totalH=rows*ROW_H+MARGIN;
+  svgNode.setAttribute('width',PAPER_W);
+  svgNode.setAttribute('height',totalH);
+  const g=document.createElementNS(SVG_NS,'g');
+  svgNode.appendChild(g);
+
+  for(let row=0;row<rows;row++){
+    const rowMs=measures.slice(row*perRow,(row+1)*perRow);
+    const rowY=row*ROW_H+MARGIN,tY=rowY+TREBLE_TOP,bY=rowY+BASS_TOP;
+    let xCur=MARGIN;
+    for(let col=0;col<rowMs.length;col++){
+      const mData=rowMs[col],isRowStart=col===0,isFirst=row===0&&col===0;
+      const isLast=row===rows-1&&col===rowMs.length-1;
+      const mW=isRowStart?firstMW:normalMW;
+      if(clef!=='bass')drawStaff(g,xCur,tY,mW);
+      if(clef==='both')drawStaff(g,xCur,bY,mW);
+      if(clef==='bass')drawStaff(g,xCur,tY,mW);
+      if(!isRowStart){
+        if(clef!=='bass')drawBarLine(g,xCur,tY);
+        if(clef==='both')drawBarLine(g,xCur,bY);
+        if(clef==='bass')drawBarLine(g,xCur,tY);
+      }
+      let noteX=xCur+PAD;
+      if(isRowStart){
+        if(clef!=='bass'){drawTrebleClef(g,xCur,tY);drawKeySig(g,xCur+CLEF_W,tY,key,'treble');drawTimeSig(g,xCur+CLEF_W+KEYSIG_W+14,tY,timeSig);}
+        if(clef==='both'){drawBassClef(g,xCur,bY);drawKeySig(g,xCur+CLEF_W,bY,key,'bass');drawTimeSig(g,xCur+CLEF_W+KEYSIG_W+14,bY,timeSig);}
+        if(clef==='bass'){drawBassClef(g,xCur,tY);drawKeySig(g,xCur+CLEF_W,tY,key,'bass');drawTimeSig(g,xCur+CLEF_W+KEYSIG_W+14,tY,timeSig);}
+        noteX=xCur+ROW_OH;
+      }
+      const notes=mData.notes||[],noteW=mW-(isRowStart?ROW_OH:PAD)-PAD;
+      const spc=notes.length>0?noteW/notes.length:noteW;
+      notes.forEach((note,ni)=>{
+        const cx=noteX+ni*spc+spc*0.5,dur=note.dur||'q';
+        if(note.num===0){
+          if(clef!=='bass')drawRest(g,cx,tY,dur);
+          if(clef==='both')drawRest(g,cx,bY,dur);
+          if(clef==='bass')drawRest(g,cx,tY,dur);
+          return;
+        }
+        const sm=scaleMap[note.num-1],userOct=note.octave||0;
+        if(clef!=='bass')drawNote(g,cx,tY,trebleStep(sm.nn,4+sm.octOff+userOct),dur);
+        if(clef==='both')drawNote(g,cx,bY,bassStep(sm.nn,3+sm.octOff+userOct),dur);
+        if(clef==='bass')drawNote(g,cx,tY,bassStep(sm.nn,3+sm.octOff+userOct),dur);
+      });
+      if(HAS_LYRICS){
+        const gs=measures.slice(0,row*perRow+col).reduce((s,m)=>s+m.notes.length,0);
+        const lyricY=(clef==='both'?bY:tY)+STAFF_H+14;
+        notes.forEach((note,ni)=>{
+          const w=lyricWords[gs+ni]||'';
+          if(w)g.appendChild(el('text',{x:noteX+ni*spc+spc*0.5,y:lyricY,'font-family':'serif','font-size':12,fill:'#333','text-anchor':'middle'},w));
+        });
+      }
+      if(HAS_CHORDS){
+        const ch=chords[row*perRow+col];
+        if(ch&&ch.label){
+          const cy2=(clef==='both'?bY:tY)+STAFF_H+(HAS_LYRICS?32:14);
+          g.appendChild(el('text',{x:noteX+noteW*0.4,y:cy2,'font-family':'serif','font-size':13,'font-weight':'bold',fill:'#8b6914','text-anchor':'middle'},ch.label));
+          g.appendChild(el('text',{x:noteX+noteW*0.76,y:cy2,'font-family':'serif','font-size':10,fill:'#a07820','text-anchor':'middle'},ch.roman));
+        }
+      }
+      const mEnd=xCur+mW;
+      if(isLast){
+        if(clef!=='bass')drawFinalBar(g,mEnd,tY);
+        if(clef==='both')drawFinalBar(g,mEnd,bY);
+        if(clef==='bass')drawFinalBar(g,mEnd,tY);
+      }else if(col===rowMs.length-1){
+        if(clef!=='bass')drawBarLine(g,mEnd,tY);
+        if(clef==='both')drawBarLine(g,mEnd,bY);
+        if(clef==='bass')drawBarLine(g,mEnd,tY);
+      }
+      xCur+=mW;
+    }
+  }
+}
+
+// ── Export helpers ────────────────────────────────────────────────────────────
+function svgToDataURL(){
+  const svg=document.getElementById('staff-svg');
+  const bg=document.createElementNS(SVG_NS,'rect');
+  bg.setAttribute('width','100%');bg.setAttribute('height','100%');bg.setAttribute('fill','white');
+  svg.insertBefore(bg,svg.firstChild);
+  const data=new XMLSerializer().serializeToString(svg);
+  svg.removeChild(bg);
+  return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(data);
+}
+function svgToCanvas(cb){
+  const svg=document.getElementById('staff-svg');
+  const w=parseInt(svg.getAttribute('width')||800);
+  const h=parseInt(svg.getAttribute('height')||400);
+  const canvas=document.createElement('canvas');
+  canvas.width=w*2;canvas.height=h*2;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='white';ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.scale(2,2);
+  const img=new Image();
+  img.onload=()=>{ctx.drawImage(img,0,0);cb(canvas);};
+  img.onerror=()=>setStatus('Export failed — try a different browser.');
+  img.src=svgToDataURL();
+}
+
+// ── UI wiring ─────────────────────────────────────────────────────────────────
+function setStatus(msg,ok=false){
+  const el=document.getElementById('status');
+  el.textContent=msg;
+  el.style.color=ok?'#C9A84C':'rgba(248,245,238,0.4)';
+  el.style.fontStyle=ok?'italic':'italic';
+}
+
+// Image preview
+document.getElementById('file-input').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    document.getElementById('preview-img').src=ev.target.result;
+    document.getElementById('preview-wrap').classList.remove('hidden');
+  };
+  r.readAsDataURL(f);
+});
+
+// Drag over highlight
+const dz=document.getElementById('drop-zone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.style.borderColor='#C9A84C';});
+dz.addEventListener('dragleave',()=>{dz.style.borderColor='';});
+dz.addEventListener('drop',e=>{
+  e.preventDefault();dz.style.borderColor='';
+  const f=e.dataTransfer.files[0];if(!f)return;
+  document.getElementById('file-input').files=e.dataTransfer.files;
+  document.getElementById('file-input').dispatchEvent(new Event('change'));
+});
+
+// Convert
+document.getElementById('convert-btn').addEventListener('click',runConvert);
+document.getElementById('jianpu-input').addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();runConvert();}
+});
+
+function runConvert(){
+  const text=document.getElementById('jianpu-input').value.trim();
+  const key=document.getElementById('key-select').value;
+  const timeSig=document.getElementById('time-select').value;
+  const clef=document.getElementById('clef-select').value;
+  const perRow=parseInt(document.getElementById('perrow-select').value,10);
+  const showChords=document.getElementById('show-chords').checked;
+  const lyrics=document.getElementById('lyrics-input').value.trim();
+
+  if(!text){setStatus('Please enter jianpu notation above.');return;}
+
+  let measures;
+  try{
+    measures=parseJianpu(text);
+    if(!measures.length){setStatus('No notes found — check your format.');return;}
+  }catch(e){setStatus('Parse error: '+e.message);return;}
+
+  const lyricWords=lyrics?lyrics.split(/\s+/).filter(Boolean):[];
+  const chords=showChords?measures.map(m=>{
+    const r=detectChord(m.notes,key);
+    return{roman:r,label:r?chordLabel(r,key):''};
+  }):[];
+
+  document.getElementById('output-section').classList.remove('hidden');
+
+  requestAnimationFrame(()=>{
+    const svg=document.getElementById('staff-svg');
+    renderStaff(svg,measures,clef,key,timeSig,perRow,lyricWords,chords);
+    const isMobile=window.innerWidth<640;
+    const hint=document.getElementById('scroll-hint');
+    hint.classList.toggle('hidden',!isMobile);
+    setStatus(`✓ ${measures.length} bar${measures.length!==1?'s':''} · ${Math.ceil(measures.length/perRow)} row${Math.ceil(measures.length/perRow)!==1?'s':''}`,true);
+  });
+}
+
+// Export PNG
+document.getElementById('export-png-btn').addEventListener('click',()=>{
+  svgToCanvas(canvas=>{
+    const a=document.createElement('a');
+    a.download='staff-notation.png';
+    a.href=canvas.toDataURL('image/png');
+    a.click();
+  });
+});
+
+// Export PDF
+document.getElementById('export-pdf-btn').addEventListener('click',()=>{
+  svgToCanvas(canvas=>{
+    const imgData=canvas.toDataURL('image/png');
+    const key=document.getElementById('key-select').value;
+    const ts=document.getElementById('time-select').value;
+    const w=window.open('','_blank');
+    w.document.write(`<!DOCTYPE html><html><head><title>Staff Notation</title>
+<style>@page{size:A4 portrait;margin:12mm;}body{margin:0;padding:0;background:white;font-family:Georgia,serif;}
+.hdr{font-size:11px;color:#666;margin-bottom:6px;}img{max-width:100%;height:auto;display:block;}
+button{margin-top:12px;padding:8px 20px;font-size:14px;cursor:pointer;}
+@media print{button{display:none;}}</style></head><body>
+<div class="hdr">Key: 1=${key} &nbsp;|&nbsp; Time: ${ts} &nbsp;|&nbsp; Big Piano Small Piano</div>
+<img src="${imgData}">
+<button onclick="window.print()">Print / Save as PDF</button>
+</body></html>`);
+    w.document.close();
+  });
+});
+</script>
