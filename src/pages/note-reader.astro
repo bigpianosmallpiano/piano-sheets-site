@@ -268,11 +268,14 @@ import CoffeeButton from "../components/CoffeeButton.astro";
       lines:      [-10, -8, -6, -4, -2],  // G2 B2 D3 F3 A3
       landmarks:  [0, -4],                 // Middle C (ledger), F3 (line 4)
       clefChar:   "\u{1D122}",             // 𝄢 bass clef Unicode
-      clefOffsetX: 4,
-      // Bass clef sits with its body between lines 3-5 (top 3)
-      // Baseline ≈ top-line Y + SP * 1.3
-      clefBaselineFn: (refY) => refY - 4*SP + SP * 1.4,
-      clefFontSize:   (staffH) => staffH * 1.1,
+      clefOffsetX: 6,
+      // Bass clef: the symbol body spans from roughly line 2 to line 4 (B2 to F3).
+      // refY = bottom line Y (G2).
+      // Line 2 from bottom (B2) = refY - SP.
+      // We want the glyph body centred between lines 2-4.
+      // Empirically: baseline at refY - SP * 0.2 places the body correctly.
+      clefBaselineFn: (refY) => refY - SP * 0.2,
+      clefFontSize:   (staffH) => staffH * 1.35,
       name: "bass",
     };
 
@@ -476,6 +479,7 @@ import CoffeeButton from "../components/CoffeeButton.astro";
     function redrawBg() {
       const w = staffBg.width;
       const h = CANVAS_H;
+      staffBg.style.transform = "";   // NEVER translate the bg (clef must stay frozen)
       bgCtx.clearRect(0, 0, w, h);
       bgCtx.fillStyle = C.bg;
       bgCtx.fillRect(0, 0, w, h);
