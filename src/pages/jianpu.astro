@@ -1,593 +1,753 @@
 ---
+// src/pages/jianpu.astro
+// 简谱 → Staff Notation Converter
 import Layout from "../layouts/Layout.astro";
 import CoffeeButton from "../components/CoffeeButton.astro";
 ---
 
 <Layout
-  title="Jianpu to Staff Notation Converter | Big Piano Small Piano"
-  description="Convert numbered notation (简谱 jianpu) to treble and bass clef staff notation. Upload an image or type notes manually. Free tool from Big Piano Small Piano."
+  title="Jianpu 简谱 to Staff Notation Converter | Big Piano Small Piano"
+  description="Convert jianpu (numbered notation 简谱) to standard treble/bass clef staff notation. Free online tool for piano learners. Supports key signatures, time signatures, lyrics and chord analysis."
 >
 
-  <!-- ── Hero ── -->
-  <section class="relative py-14 px-4 text-center border-b border-surface-border overflow-hidden">
-    <div class="absolute inset-0 pointer-events-none opacity-20"
-      style="background: radial-gradient(ellipse 60% 50% at 50% 0%, #C9A84C22 0%, transparent 70%);">
-    </div>
-    <div class="relative max-w-2xl mx-auto">
-      <p class="font-sans text-gold text-xs tracking-[0.2em] uppercase mb-3 opacity-80">Free Tool</p>
-      <h1 class="font-serif text-4xl md:text-5xl text-ivory mb-4 leading-tight">
-        简谱 <span class="text-gold">→</span> Staff Notation
+  <!-- HERO -->
+  <section class="relative overflow-hidden border-b border-surface-border">
+    <div class="absolute inset-0 bg-keys-pattern opacity-50 pointer-events-none"></div>
+    <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold to-transparent"></div>
+    <div class="relative max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12 text-center flex flex-col items-center gap-2">
+      <p class="text-gold text-xs tracking-[0.25em] uppercase font-mono">Learning tool</p>
+      <h1 class="font-display text-4xl sm:text-5xl font-semibold text-ivory leading-tight">
+        简谱 <span class="italic text-gold">to Staff</span>
       </h1>
-      <p class="font-sans text-ivory/60 text-sm md:text-base max-w-xl mx-auto leading-relaxed">
-        Type your jianpu numbered notation and instantly see it rendered as treble or bass clef sheet music. Includes chord analysis, lyrics, and export.
+      <p class="text-ivory/50 text-sm max-w-lg leading-relaxed">
+        Convert jianpu (numbered notation) to treble or bass clef staff notation.
+        Supports key signatures, time signatures, lyrics and chord analysis.
       </p>
     </div>
   </section>
 
-  <!-- ── Main tool ── -->
-  <section class="max-w-4xl mx-auto px-4 py-10">
+  <!-- CONTROLS -->
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 pt-6 space-y-4">
 
-    <!-- Upload zone -->
-    <div
-      id="drop-zone"
-      class="relative border border-dashed border-surface-border rounded-lg p-8 text-center cursor-pointer transition-all duration-200 mb-6 group hover:border-gold/60 hover:bg-surface/60"
-      style="background: #141414;"
-    >
-      <input type="file" id="file-input" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
-      <div class="text-3xl mb-2">🎼</div>
-      <p class="font-sans text-ivory/70 text-sm font-medium group-hover:text-ivory/90 transition-colors">
-        Upload a jianpu image for reference
-      </p>
-      <p class="font-sans text-ivory/30 text-xs mt-1">PNG, JPG, WEBP</p>
+    <!-- Input row -->
+    <div class="bg-surface border border-surface-border rounded-xl p-4 space-y-3">
+      <div class="flex flex-wrap items-center gap-3 mb-1">
+        <p class="text-gold text-xs tracking-[0.2em] uppercase font-mono">Jianpu input</p>
+        <span class="text-ivory/30 text-xs">Use numbers 1–7, 0=rest, - =hold, | =barline, ' =high octave, , =low octave, _ =eighth note</span>
+      </div>
+      <textarea id="jianpu-input"
+        class="w-full bg-surface-raised border border-surface-border rounded-lg px-3 py-2.5 text-ivory text-sm font-mono leading-relaxed resize-none focus:outline-none focus:border-gold/50 placeholder-ivory/20"
+        rows="4"
+        placeholder="e.g.   1 2 3 4 | 5 5 - - | 6 6 5 - | 4 4 3 2 | 1 - - - |"></textarea>
+
+      <!-- Lyrics -->
+      <div class="flex items-center gap-2">
+        <label class="text-ivory/50 text-xs flex-shrink-0">Lyrics:</label>
+        <input id="lyrics-input" type="text"
+          class="flex-1 bg-surface-raised border border-surface-border rounded-lg px-3 py-1.5 text-ivory text-xs font-mono focus:outline-none focus:border-gold/50 placeholder-ivory/20"
+          placeholder="space-separated syllables: do re mi fa sol" />
+      </div>
     </div>
-
-    <div id="preview-wrap" class="hidden mb-6 text-center">
-      <img id="preview-img" alt="Jianpu reference" class="max-h-52 max-w-full mx-auto rounded border border-surface-border" />
-    </div>
-
-    <!-- Divider -->
-    <div class="flex items-center gap-3 mb-5">
-      <div class="flex-1 h-px bg-surface-border"></div>
-      <span class="font-sans text-ivory/30 text-xs tracking-widest uppercase">Enter Jianpu</span>
-      <div class="flex-1 h-px bg-surface-border"></div>
-    </div>
-
-    <!-- Input hint -->
-    <div class="flex flex-wrap gap-x-3 gap-y-1 mb-3">
-      {[
-        ["1–7", "Do–Ti"],
-        ["0", "rest"],
-        ["-", "hold beat"],
-        ["|", "bar line"],
-        ["1'", "high octave"],
-        ["1,", "low octave"],
-        ["1_", "eighth note"],
-      ].map(([code, label]) => (
-        <span class="font-sans text-ivory/40 text-xs">
-          <code class="bg-surface rounded px-1.5 py-0.5 text-gold/80 font-mono text-xs">{code}</code>
-          {" "}{label}
-        </span>
-      ))}
-    </div>
-
-    <!-- Jianpu textarea -->
-    <textarea
-      id="jianpu-input"
-      rows="3"
-      placeholder="1 2 3 4 | 5 - - - | 6 5 4 3 | 2 - - -"
-      class="w-full font-mono text-sm text-ivory/90 bg-surface border border-surface-border rounded-lg px-4 py-3 resize-y min-h-[80px] placeholder-ivory/20 focus:outline-none focus:border-gold/50 transition-colors"
-    ></textarea>
-
-    <!-- Lyrics -->
-    <input
-      type="text"
-      id="lyrics-input"
-      placeholder="Lyrics — space-separated syllables (optional)"
-      class="w-full font-mono text-sm text-ivory/80 bg-surface border border-surface-border rounded-lg px-4 py-2.5 mt-3 placeholder-ivory/20 focus:outline-none focus:border-gold/50 transition-colors"
-    />
 
     <!-- Options row -->
-    <div class="flex flex-wrap gap-3 mt-5 items-end">
+    <div class="bg-surface border border-surface-border rounded-xl p-4">
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
 
-      {[
-        { id: "key-select", label: "Key (1=)", opts: ["C","G","F","D","A","Bb","Eb"] },
-        { id: "time-select", label: "Time", opts: ["4/4","3/4","2/4"] },
-        { id: "clef-select", label: "Clef", opts: ["treble","both","bass"] },
-        { id: "perrow-select", label: "Bars/row", opts: ["3","4","5","6"] },
-      ].map(({ id, label, opts }) => (
-        <div class="flex flex-col gap-1">
-          <label class="font-sans text-ivory/40 text-[10px] uppercase tracking-widest" for={id}>{label}</label>
-          <select
-            id={id}
-            class="font-sans text-sm text-ivory bg-surface border border-surface-border rounded px-3 py-1.5 cursor-pointer focus:outline-none focus:border-gold/50"
-          >
-            {opts.map((o, i) => (
-              <option value={o} selected={i === (id === "perrow-select" ? 1 : 0)}>{o}</option>
-            ))}
+        <!-- Key -->
+        <div class="space-y-1.5">
+          <label class="text-ivory/50 text-xs uppercase tracking-wide font-mono">Key</label>
+          <select id="key-select"
+            class="w-full bg-surface-raised border border-surface-border text-ivory/80 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-gold/50">
+            <option value="C">C major</option>
+            <option value="G">G major</option>
+            <option value="D">D major</option>
+            <option value="A">A major</option>
+            <option value="F">F major</option>
+            <option value="Bb">B♭ major</option>
+            <option value="Eb">E♭ major</option>
           </select>
         </div>
-      ))}
 
-      <!-- Chord checkbox -->
-      <div class="flex flex-col gap-1">
-        <label class="font-sans text-ivory/40 text-[10px] uppercase tracking-widest">Extras</label>
-        <label class="flex items-center gap-2 font-sans text-sm text-ivory/70 cursor-pointer py-1.5">
-          <input type="checkbox" id="show-chords" checked class="accent-gold" />
-          Chord analysis
+        <!-- Time signature -->
+        <div class="space-y-1.5">
+          <label class="text-ivory/50 text-xs uppercase tracking-wide font-mono">Time</label>
+          <select id="time-select"
+            class="w-full bg-surface-raised border border-surface-border text-ivory/80 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-gold/50">
+            <option value="4/4">4/4</option>
+            <option value="3/4">3/4</option>
+            <option value="2/4">2/4</option>
+          </select>
+        </div>
+
+        <!-- Clef -->
+        <div class="space-y-1.5">
+          <label class="text-ivory/50 text-xs uppercase tracking-wide font-mono">Clef</label>
+          <select id="clef-select"
+            class="w-full bg-surface-raised border border-surface-border text-ivory/80 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-gold/50">
+            <option value="treble">Treble 𝄞</option>
+            <option value="bass">Bass 𝄢</option>
+            <option value="grand">Grand Staff</option>
+          </select>
+        </div>
+
+        <!-- Bars per row -->
+        <div class="space-y-1.5">
+          <label class="text-ivory/50 text-xs uppercase tracking-wide font-mono">Bars/row</label>
+          <select id="bars-per-row"
+            class="w-full bg-surface-raised border border-surface-border text-ivory/80 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-gold/50">
+            <option value="4" selected>4</option>
+            <option value="3">3</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Checkboxes row -->
+      <div class="flex flex-wrap gap-4 mt-3 pt-3 border-t border-surface-border">
+        <label class="flex items-center gap-2 cursor-pointer select-none">
+          <input type="checkbox" id="show-chords" class="w-4 h-4 accent-gold" />
+          <span class="text-ivory/60 text-sm">Chord analysis</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer select-none">
+          <input type="checkbox" id="show-note-names" class="w-4 h-4 accent-gold" checked />
+          <span class="text-ivory/60 text-sm">Note names</span>
         </label>
       </div>
+    </div>
 
-      <!-- Convert button -->
-      <button
-        id="convert-btn"
-        class="ml-auto font-sans font-semibold text-sm px-6 py-2 rounded transition-all duration-200"
-        style="background: #C9A84C; color: #0D0D0D;"
-        onmouseenter="this.style.background='#D4B565'"
-        onmouseleave="this.style.background='#C9A84C'"
-      >
-        Convert →
+    <!-- Action buttons -->
+    <div class="flex flex-wrap gap-3">
+      <button id="convert-btn"
+        class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-gold hover:bg-gold-dark text-ebony font-semibold text-sm px-6 py-3 rounded-xl transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"/>
+        </svg>
+        Convert to Staff
+      </button>
+      <button id="export-png"
+        class="inline-flex items-center gap-2 border border-surface-border hover:border-gold/50 text-ivory/70 hover:text-gold text-sm px-4 py-3 rounded-xl transition-all hidden">
+        ↓ PNG
+      </button>
+      <button id="export-pdf"
+        class="inline-flex items-center gap-2 border border-surface-border hover:border-gold/50 text-ivory/70 hover:text-gold text-sm px-4 py-3 rounded-xl transition-all hidden">
+        ↓ PDF
+      </button>
+      <button id="clear-btn"
+        class="inline-flex items-center gap-2 border border-surface-border hover:border-gold/40 text-ivory/40 hover:text-gold text-sm px-4 py-3 rounded-xl transition-all">
+        Clear
       </button>
     </div>
+  </div>
 
-    <!-- Status -->
-    <div id="status" class="mt-3 min-h-5 font-sans text-sm text-ivory/40 italic"></div>
-
-    <!-- Output -->
-    <div id="output-section" class="hidden mt-6">
-      <div class="flex items-center gap-3 mb-4">
-        <div class="flex-1 h-px bg-surface-border"></div>
-        <span class="font-sans text-gold text-xs tracking-widest uppercase">Staff Notation</span>
-        <div class="flex-1 h-px bg-surface-border"></div>
+  <!-- OUTPUT STAFF -->
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 pt-4 pb-4">
+    <div id="output-container" class="bg-surface border border-surface-border rounded-xl overflow-hidden hidden">
+      <div class="px-4 pt-3 pb-1 flex items-center justify-between">
+        <p class="text-gold text-xs tracking-[0.2em] uppercase font-mono">Staff notation</p>
+        <p id="output-info" class="text-ivory/30 text-xs font-mono"></p>
       </div>
-
-      <!-- SVG scroll container -->
-      <div
-        id="notation-wrap"
-        class="rounded-lg border border-surface-border overflow-x-auto"
-        style="background: white; padding: 16px;"
-      >
-        <svg id="staff-svg" style="display:block;"></svg>
-      </div>
-
-      <p id="scroll-hint" class="hidden mt-2 text-center font-sans text-ivory/30 text-xs">← Scroll to see all bars →</p>
-
-      <!-- Export buttons -->
-      <div class="flex gap-3 mt-4 flex-wrap">
-        <button
-          id="export-png-btn"
-          class="font-sans text-xs font-semibold px-4 py-2 rounded border border-surface-border text-ivory/60 hover:text-gold hover:border-gold/40 transition-all"
-        >
-          ⬇ Save PNG
-        </button>
-        <button
-          id="export-pdf-btn"
-          class="font-sans text-xs font-semibold px-4 py-2 rounded border border-surface-border text-ivory/60 hover:text-gold hover:border-gold/40 transition-all"
-        >
-          ⬇ Save PDF
-        </button>
-      </div>
-
-      <!-- Legend -->
-      <div class="mt-5 border-l-2 border-gold/30 pl-4 py-1">
-        <p class="font-sans text-ivory/30 text-xs leading-6">
-          <code class="bg-surface rounded px-1 text-gold/60">1</code>=Do &nbsp;
-          <code class="bg-surface rounded px-1 text-gold/60">2</code>=Re &nbsp;
-          <code class="bg-surface rounded px-1 text-gold/60">3</code>=Mi &nbsp;
-          <code class="bg-surface rounded px-1 text-gold/60">4</code>=Fa &nbsp;
-          <code class="bg-surface rounded px-1 text-gold/60">5</code>=Sol &nbsp;
-          <code class="bg-surface rounded px-1 text-gold/60">6</code>=La &nbsp;
-          <code class="bg-surface rounded px-1 text-gold/60">7</code>=Ti &nbsp;|&nbsp;
-          <code class="bg-surface rounded px-1 text-gold/60">-</code>=hold &nbsp;|&nbsp;
-          <code class="bg-surface rounded px-1 text-gold/60">'</code>=+octave &nbsp;
-          <code class="bg-surface rounded px-1 text-gold/60">,</code>=-octave
-        </p>
+      <div id="staff-scroll" class="overflow-x-auto p-4">
+        <svg id="staff-svg" xmlns="http://www.w3.org/2000/svg"></svg>
       </div>
     </div>
 
-    <!-- Coffee button -->
-    <div class="mt-12 pt-8 border-t border-surface-border">
-      <CoffeeButton
-        variant="inline"
-        message="Enjoying the free learning tools? A coffee helps keep them free."
-      />
+    <!-- Empty state -->
+    <div id="empty-state" class="bg-surface border border-surface-border rounded-xl p-12 text-center">
+      <p class="font-display text-2xl text-ivory/20 italic mb-2">Enter jianpu above and click Convert</p>
+      <p class="text-ivory/25 text-xs">e.g. &nbsp;<code class="font-mono bg-surface-raised px-2 py-1 rounded">1 2 3 4 | 5 - - - | 6 5 4 3 | 2 - - - |</code></p>
     </div>
+  </div>
 
-  </section>
-</Layout>
+  <!-- JIANPU REFERENCE -->
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 pb-8">
+    <div class="bg-surface border border-surface-border rounded-xl p-5">
+      <p class="text-gold text-xs tracking-[0.2em] uppercase font-mono mb-4">Jianpu notation guide</p>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+        {[
+          { sym:"1 2 3 4 5 6 7", desc:"Scale degrees (do re mi fa sol la si)" },
+          { sym:"0",             desc:"Rest" },
+          { sym:"-",             desc:"Hold / extend previous note" },
+          { sym:"|",             desc:"Bar line" },
+          { sym:"1'  2'",        desc:"High octave (add ' after)" },
+          { sym:"1,  2,",        desc:"Low octave (add , after)" },
+          { sym:"1_",            desc:"Eighth note (add _ after)" },
+          { sym:"1__",           desc:"Sixteenth note (add __ after)" },
+          { sym:"Lyrics below",  desc:"Space-separated syllables in the lyrics box" },
+        ].map(item => (
+          <div class="flex gap-3 items-start">
+            <code class="font-mono text-gold bg-surface-raised px-2 py-1 rounded flex-shrink-0 text-xs">{item.sym}</code>
+            <span class="text-ivory/50 leading-relaxed">{item.desc}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+    <div class="mt-4">
+      <CoffeeButton variant="inline" message="Enjoying the free tools? A coffee helps keep them free for everyone." />
+    </div>
+  </div>
 
-<script>
-// ── Constants ─────────────────────────────────────────────────────────────────
-const KEY_OFFSETS  = {C:0,G:7,F:5,D:2,A:9,Bb:10,Eb:3};
-const SOLFEGE      = [0,2,4,5,7,9,11];
-const NOTE_NAMES   = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-const FLAT_NAMES   = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
-const FLAT_KEYS    = new Set(['F','Bb','Eb','Ab','Db','Gb']);
-const DIATONIC     = {C:0,D:1,E:2,F:3,G:4,A:5,B:6};
-const SHARP_COUNT  = {C:0,G:1,D:2,A:3,E:4,B:5};
-const FLAT_COUNT   = {C:0,F:1,Bb:2,Eb:3,Ab:4,Db:5,Gb:6};
-const DUR_MAP      = {1:'q',2:'h',3:'hd',4:'w'};
-const DUR_BEATS    = {w:4,hd:3,h:2,q:1,'8':0.5,'16':0.25};
-const SVG_NS       = 'http://www.w3.org/2000/svg';
-const PAPER_W      = 800;
-const MARGIN       = 14;
-const STEP_H       = 5;
-const SPACE_H      = 10;
-const STAFF_H      = 40;
-const STEM_L       = 32;
+  <!-- ════════════════════════ SCRIPT ════════════════════════════════════════ -->
+  <script>
+  (function () {
 
-// ── Parser ────────────────────────────────────────────────────────────────────
-function parseJianpu(text) {
-  const tokens = text.trim().split(/\s+/);
-  const tagged = [];
-  for (const tok of tokens) {
-    if (tok==='|'){tagged.push({t:'bar'});continue;}
-    if (tok==='-'){tagged.push({t:'dash'});continue;}
-    let raw=tok, octave=0, dur='q';
-    const ul=(raw.match(/_/g)||[]).length;
-    raw=raw.replace(/_/g,'');
-    if(ul>=2)dur='16'; else if(ul===1)dur='8';
-    if(raw.endsWith("'")){octave=1;raw=raw.slice(0,-1);}
-    else if(raw.endsWith(',')){octave=-1;raw=raw.slice(0,-1);}
-    const num=parseInt(raw,10);
-    if(!isNaN(num)&&num>=0&&num<=7) tagged.push({t:'note',num,octave,dur});
-  }
-  const merged=[]; let i=0;
-  while(i<tagged.length){
-    const tok=tagged[i];
-    if(tok.t==='note'&&tok.dur==='q'){
-      let d=0,j=i+1;
-      while(j<tagged.length&&tagged[j].t==='dash'){d++;j++;}
-      merged.push({...tok,dur:DUR_MAP[Math.min(d+1,4)]||'w'});
-      i=j;
-    } else {merged.push(tok);i++;}
-  }
-  const measures=[]; let cur=[];
-  for(const tok of merged){
-    if(tok.t==='bar'){if(cur.length){measures.push({notes:[...cur]});cur=[];}}
-    else if(tok.t==='note') cur.push(tok);
-  }
-  if(cur.length) measures.push({notes:[...cur]});
-  return measures;
-}
+    // ── DOM ──────────────────────────────────────────────────────────────────
+    const inputEl      = document.getElementById("jianpu-input");
+    const lyricsEl     = document.getElementById("lyrics-input");
+    const keyEl        = document.getElementById("key-select");
+    const timeEl       = document.getElementById("time-select");
+    const clefEl       = document.getElementById("clef-select");
+    const barsRowEl    = document.getElementById("bars-per-row");
+    const showChordsEl = document.getElementById("show-chords");
+    const showNamesEl  = document.getElementById("show-note-names");
+    const convertBtn   = document.getElementById("convert-btn");
+    const exportPng    = document.getElementById("export-png");
+    const exportPdf    = document.getElementById("export-pdf");
+    const clearBtn     = document.getElementById("clear-btn");
+    const outputCont   = document.getElementById("output-container");
+    const emptyState   = document.getElementById("empty-state");
+    const staffSvg     = document.getElementById("staff-svg");
+    const outputInfo   = document.getElementById("output-info");
 
-// ── Pitch ─────────────────────────────────────────────────────────────────────
-function trebleStep(n,o){const b=n.replace('#','').replace('b','');return(o-4)*7+(DIATONIC[b]??0)-2;}
-function bassStep(n,o){const b=n.replace('#','').replace('b','');return(o-2)*7+(DIATONIC[b]??0)-4;}
-function buildScaleMap(key){
-  const useFlats=FLAT_KEYS.has(key),rootSemi=KEY_OFFSETS[key];
-  const names=useFlats?FLAT_NAMES:NOTE_NAMES;
-  const rootBase=names[rootSemi].replace('#','').replace('b','');
-  const rootDiat=DIATONIC[rootBase];
-  let octOff=0,prevDiat=rootDiat-1;
-  const map=[];
-  for(let i=0;i<7;i++){
-    const semi=(SOLFEGE[i]+rootSemi)%12,nn=names[semi];
-    const currDiat=DIATONIC[nn.replace('#','').replace('b','')];
-    if(currDiat<=prevDiat&&i>0) octOff++;
-    map.push({nn,octOff}); prevDiat=currDiat;
-  }
-  return map;
-}
+    // ── Key definitions ──────────────────────────────────────────────────────
+    // For each key: the pitch of scale degree 1 (C4=0, D4=2, etc. in semitones from C4)
+    // and the accidentals to show on the staff
+    const KEYS = {
+      "C":  { root: 0,  accidentals: [],                                type: "sharp" },
+      "G":  { root: 7,  accidentals: ["F"],                             type: "sharp" },
+      "D":  { root: 2,  accidentals: ["F","C"],                         type: "sharp" },
+      "A":  { root: 9,  accidentals: ["F","C","G"],                     type: "sharp" },
+      "F":  { root: 5,  accidentals: ["B"],                             type: "flat"  },
+      "Bb": { root: 10, accidentals: ["B","E"],                         type: "flat"  },
+      "Eb": { root: 3,  accidentals: ["B","E","A"],                     type: "flat"  },
+    };
 
-// ── Chord detection ───────────────────────────────────────────────────────────
-const TRIADS=[
-  {roman:'I',degrees:[1,3,5],weight:10},{roman:'IV',degrees:[4,6,1],weight:9},
-  {roman:'V',degrees:[5,7,2],weight:9},{roman:'vi',degrees:[6,1,3],weight:8},
-  {roman:'ii',degrees:[2,4,6],weight:7},{roman:'iii',degrees:[3,5,7],weight:5},
-  {roman:'vii°',degrees:[7,2,4],weight:3},
-];
-function detectChord(notes,key){
-  if(!notes.length) return '';
-  const offset=KEY_OFFSETS[key],pcW={};
-  let bassNum=null;
-  for(const n of notes){
-    if(!n.num) continue;
-    const pc=(SOLFEGE[n.num-1]+offset)%12;
-    pcW[pc]=(pcW[pc]||0)+(DUR_BEATS[n.dur||'q']||1);
-    if(bassNum===null) bassNum=n.num;
-  }
-  if(!Object.keys(pcW).length) return '';
-  const total=Object.values(pcW).reduce((a,b)=>a+b,0);
-  const bassPC=bassNum?(SOLFEGE[bassNum-1]+offset)%12:-1;
-  let best=null,bestScore=-1;
-  for(const t of TRIADS){
-    const tPCs=t.degrees.map(d=>(SOLFEGE[d-1]+offset)%12);
-    const mB=tPCs.reduce((s,pc)=>s+(pcW[pc]||0),0);
-    const sc=(mB/total*0.5+tPCs.filter(pc=>pcW[pc]).length/3*0.35+(tPCs[0]===bassPC?0.5:0)*0.15)*t.weight;
-    if(sc>bestScore){bestScore=sc;best=t;}
-  }
-  return best?best.roman:'';
-}
-function chordLabel(roman,key){
-  const d2s={'I':0,'ii':2,'iii':4,'IV':5,'V':7,'vi':9,'vii°':11};
-  const offset=KEY_OFFSETS[key],names=FLAT_KEYS.has(key)?FLAT_NAMES:NOTE_NAMES;
-  const root=names[((d2s[roman]??0)+offset)%12];
-  const q=roman.includes('°')?'dim':['ii','iii','vi'].includes(roman)?'m':'';
-  return root+q;
-}
+    // Diatonic intervals for major scale (semitones from root)
+    const MAJOR_SCALE = [0, 2, 4, 5, 7, 9, 11];
 
-// ── SVG helpers ───────────────────────────────────────────────────────────────
-function el(tag,attrs,text){
-  const e=document.createElementNS(SVG_NS,tag);
-  for(const[k,v] of Object.entries(attrs)) e.setAttribute(k,String(v));
-  if(text!==undefined) e.textContent=text;
-  return e;
-}
-function ln(x1,y1,x2,y2,sw=1){return el('line',{x1,y1,x2,y2,stroke:'#000','stroke-width':sw});}
-function sY(sTop,step){return sTop+STAFF_H-step*STEP_H;}
+    // Note names
+    const NOTE_NAMES  = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+    const DIATONIC    = ["C","D","E","F","G","A","B"];
 
-function drawStaff(g,x,y,w){for(let i=0;i<5;i++)g.appendChild(ln(x,y+i*SPACE_H,x+w,y+i*SPACE_H));}
-function drawBarLine(g,x,y){g.appendChild(ln(x,y,x,y+STAFF_H,1.2));}
-function drawFinalBar(g,x,y){g.appendChild(ln(x,y,x,y+STAFF_H,1));g.appendChild(ln(x+4,y,x+4,y+STAFF_H,3.5));}
+    // ── Parser ───────────────────────────────────────────────────────────────
+    function parseJianpu(text, key, timeSig) {
+      const keyInfo  = KEYS[key] || KEYS["C"];
+      const rootMidi = 60 + keyInfo.root; // MIDI of scale degree 1 starting at C4 octave
 
-function drawTrebleClef(g,x,y){
-  g.appendChild(el('text',{x:x+1,y:y+STAFF_H+6,'font-family':'serif','font-size':60,fill:'#000'},'𝄞'));
-}
-function drawBassClef(g,x,y){
-  g.appendChild(el('text',{x:x+2,y:y+STAFF_H-6,'font-family':'serif','font-size':34,fill:'#000'},'𝄢'));
-}
-function drawTimeSig(g,x,y,ts){
-  const[n,d]=ts.split('/');
-  g.appendChild(el('text',{x,y:y+17,'font-family':'serif','font-size':20,'font-weight':'bold',fill:'#000','text-anchor':'middle'},n));
-  g.appendChild(el('text',{x,y:y+37,'font-family':'serif','font-size':20,'font-weight':'bold',fill:'#000','text-anchor':'middle'},d));
-}
-function drawKeySig(g,x,y,key,ct){
-  const shT=[8,5,9,6,3,7,4],flT=[4,7,3,6,2,5,8];
-  const shB=[6,3,7,4,1,5,2],flB=[2,5,1,4,0,3,6];
-  const ns=SHARP_COUNT[key]||0,nf=FLAT_COUNT[key]||0;
-  const steps=ct==='bass'?(ns>0?shB:flB):(ns>0?shT:flT);
-  const count=ns||nf,sym=ns>0?'♯':'♭';
-  for(let i=0;i<count;i++)
-    g.appendChild(el('text',{x:x+i*10,y:y+STAFF_H-steps[i]*STEP_H+5,'font-family':'serif','font-size':14,fill:'#000'},sym));
-}
-function drawLedgerLines(g,cx,sTop,step){
-  if(step<=-2)for(let s=-2;s>=step;s-=2)g.appendChild(ln(cx-8,sY(sTop,s),cx+8,sY(sTop,s)));
-  if(step>=10)for(let s=10;s<=step;s+=2)g.appendChild(ln(cx-8,sY(sTop,s),cx+8,sY(sTop,s)));
-}
-function drawNote(g,cx,sTop,step,dur){
-  const ny=sY(sTop,step),up=step<5,sx=up?cx+5.5:cx-5.5;
-  drawLedgerLines(g,cx,sTop,step);
-  if(dur==='w'){
-    g.appendChild(el('ellipse',{cx,cy:ny,rx:7,ry:5,fill:'none',stroke:'#000','stroke-width':1.8}));
-  }else if(dur==='h'||dur==='hd'){
-    g.appendChild(el('ellipse',{cx,cy:ny,rx:7,ry:5,fill:'none',stroke:'#000','stroke-width':1.8,transform:`rotate(-20,${cx},${ny})`}));
-    g.appendChild(ln(sx,ny,sx,up?ny-STEM_L:ny+STEM_L,1.5));
-    if(dur==='hd')g.appendChild(el('circle',{cx:cx+12,cy:ny,r:2.5,fill:'#000'}));
-  }else if(dur==='q'){
-    g.appendChild(el('ellipse',{cx,cy:ny,rx:6.5,ry:4.5,fill:'#000',transform:`rotate(-20,${cx},${ny})`}));
-    g.appendChild(ln(sx,ny,sx,up?ny-STEM_L:ny+STEM_L,1.5));
-  }else if(dur==='8'){
-    g.appendChild(el('ellipse',{cx,cy:ny,rx:6.5,ry:4.5,fill:'#000',transform:`rotate(-20,${cx},${ny})`}));
-    const sy2=up?ny-STEM_L:ny+STEM_L;
-    g.appendChild(ln(sx,ny,sx,sy2,1.5));
-    g.appendChild(el('path',{d:up?`M${sx},${sy2} C${sx+16},${sy2+10} ${sx+14},${sy2+20} ${sx},${sy2+24}`:`M${sx},${sy2} C${sx+16},${sy2-10} ${sx+14},${sy2-20} ${sx},${sy2-24}`,fill:'none',stroke:'#000','stroke-width':1.5}));
-  }else if(dur==='16'){
-    g.appendChild(el('ellipse',{cx,cy:ny,rx:6.5,ry:4.5,fill:'#000',transform:`rotate(-20,${cx},${ny})`}));
-    const sy2=up?ny-STEM_L:ny+STEM_L,dv=up?1:-1;
-    g.appendChild(ln(sx,ny,sx,sy2,1.5));
-    g.appendChild(el('path',{d:`M${sx},${sy2} C${sx+14},${sy2+dv*8} ${sx+12},${sy2+dv*16} ${sx},${sy2+dv*20}`,fill:'none',stroke:'#000','stroke-width':1.5}));
-    g.appendChild(el('path',{d:`M${sx},${sy2+dv*8} C${sx+14},${sy2+dv*16} ${sx+12},${sy2+dv*24} ${sx},${sy2+dv*28}`,fill:'none',stroke:'#000','stroke-width':1.5}));
-  }
-}
-function drawRest(g,cx,sTop,dur){
-  const my=sTop+SPACE_H*2;
-  if(dur==='w')g.appendChild(el('rect',{x:cx-9,y:my-3,width:18,height:6,fill:'#000'}));
-  else if(dur==='h'||dur==='hd'){
-    g.appendChild(el('rect',{x:cx-9,y:my+2,width:18,height:5,fill:'#000'}));
-    if(dur==='hd')g.appendChild(el('circle',{cx:cx+14,cy:my+4,r:2.5,fill:'#000'}));
-  }else g.appendChild(el('text',{x:cx-5,y:my+8,'font-family':'serif','font-size':22,fill:'#000'},dur==='q'?'𝄽':'𝄾'));
-}
+      const beatsPerBar = parseInt(timeSig.split("/")[0]);
+      const tokens = text.trim().split(/\s+/);
+      const bars   = [];
+      let   curBar = [];
 
-// ── Render ────────────────────────────────────────────────────────────────────
-function renderStaff(svgNode,measures,clef,key,timeSig,perRow,lyricWords=[],chords=[]){
-  svgNode.innerHTML='';
-  const scaleMap=buildScaleMap(key);
-  const CLEF_W=42,KEYSIG_W=(SHARP_COUNT[key]||FLAT_COUNT[key]||0)*10,TSIG_W=28,PAD=10;
-  const FIRST_OH=CLEF_W+KEYSIG_W+TSIG_W+PAD,ROW_OH=FIRST_OH;
-  const normalMW=Math.max(90,Math.floor((PAPER_W-2*MARGIN-FIRST_OH)/perRow));
-  const firstMW=normalMW+FIRST_OH;
-  const HAS_LYRICS=lyricWords.length>0,HAS_CHORDS=chords.length>0;
-  const EXTRA_H=(HAS_LYRICS?18:0)+(HAS_CHORDS?18:0);
-  const TREBLE_TOP=28,BASS_GAP=60,BASS_TOP=TREBLE_TOP+STAFF_H+BASS_GAP;
-  const ROW_H=clef==='both'?BASS_TOP+STAFF_H+32+EXTRA_H:TREBLE_TOP+STAFF_H+32+EXTRA_H;
-  const rows=Math.ceil(measures.length/perRow),totalH=rows*ROW_H+MARGIN;
-  svgNode.setAttribute('width',PAPER_W);
-  svgNode.setAttribute('height',totalH);
-  const g=document.createElementNS(SVG_NS,'g');
-  svgNode.appendChild(g);
-
-  for(let row=0;row<rows;row++){
-    const rowMs=measures.slice(row*perRow,(row+1)*perRow);
-    const rowY=row*ROW_H+MARGIN,tY=rowY+TREBLE_TOP,bY=rowY+BASS_TOP;
-    let xCur=MARGIN;
-    for(let col=0;col<rowMs.length;col++){
-      const mData=rowMs[col],isRowStart=col===0,isFirst=row===0&&col===0;
-      const isLast=row===rows-1&&col===rowMs.length-1;
-      const mW=isRowStart?firstMW:normalMW;
-      if(clef!=='bass')drawStaff(g,xCur,tY,mW);
-      if(clef==='both')drawStaff(g,xCur,bY,mW);
-      if(clef==='bass')drawStaff(g,xCur,tY,mW);
-      if(!isRowStart){
-        if(clef!=='bass')drawBarLine(g,xCur,tY);
-        if(clef==='both')drawBarLine(g,xCur,bY);
-        if(clef==='bass')drawBarLine(g,xCur,tY);
-      }
-      let noteX=xCur+PAD;
-      if(isRowStart){
-        if(clef!=='bass'){drawTrebleClef(g,xCur,tY);drawKeySig(g,xCur+CLEF_W,tY,key,'treble');drawTimeSig(g,xCur+CLEF_W+KEYSIG_W+14,tY,timeSig);}
-        if(clef==='both'){drawBassClef(g,xCur,bY);drawKeySig(g,xCur+CLEF_W,bY,key,'bass');drawTimeSig(g,xCur+CLEF_W+KEYSIG_W+14,bY,timeSig);}
-        if(clef==='bass'){drawBassClef(g,xCur,tY);drawKeySig(g,xCur+CLEF_W,tY,key,'bass');drawTimeSig(g,xCur+CLEF_W+KEYSIG_W+14,tY,timeSig);}
-        noteX=xCur+ROW_OH;
-      }
-      const notes=mData.notes||[],noteW=mW-(isRowStart?ROW_OH:PAD)-PAD;
-      const spc=notes.length>0?noteW/notes.length:noteW;
-      notes.forEach((note,ni)=>{
-        const cx=noteX+ni*spc+spc*0.5,dur=note.dur||'q';
-        if(note.num===0){
-          if(clef!=='bass')drawRest(g,cx,tY,dur);
-          if(clef==='both')drawRest(g,cx,bY,dur);
-          if(clef==='bass')drawRest(g,cx,tY,dur);
-          return;
+      for (const tok of tokens) {
+        if (tok === "|") {
+          if (curBar.length) bars.push(curBar);
+          curBar = [];
+          continue;
         }
-        const sm=scaleMap[note.num-1],userOct=note.octave||0;
-        if(clef!=='bass')drawNote(g,cx,tY,trebleStep(sm.nn,4+sm.octOff+userOct),dur);
-        if(clef==='both')drawNote(g,cx,bY,bassStep(sm.nn,3+sm.octOff+userOct),dur);
-        if(clef==='bass')drawNote(g,cx,tY,bassStep(sm.nn,3+sm.octOff+userOct),dur);
-      });
-      if(HAS_LYRICS){
-        const gs=measures.slice(0,row*perRow+col).reduce((s,m)=>s+m.notes.length,0);
-        const lyricY=(clef==='both'?bY:tY)+STAFF_H+14;
-        notes.forEach((note,ni)=>{
-          const w=lyricWords[gs+ni]||'';
-          if(w)g.appendChild(el('text',{x:noteX+ni*spc+spc*0.5,y:lyricY,'font-family':'serif','font-size':12,fill:'#333','text-anchor':'middle'},w));
-        });
-      }
-      if(HAS_CHORDS){
-        const ch=chords[row*perRow+col];
-        if(ch&&ch.label){
-          const cy2=(clef==='both'?bY:tY)+STAFF_H+(HAS_LYRICS?32:14);
-          g.appendChild(el('text',{x:noteX+noteW*0.4,y:cy2,'font-family':'serif','font-size':13,'font-weight':'bold',fill:'#8b6914','text-anchor':'middle'},ch.label));
-          g.appendChild(el('text',{x:noteX+noteW*0.76,y:cy2,'font-family':'serif','font-size':10,fill:'#a07820','text-anchor':'middle'},ch.roman));
+
+        // Parse duration modifiers
+        let dur = "quarter";
+        let t   = tok;
+        if (t.endsWith("__")) { dur = "sixteenth"; t = t.slice(0,-2); }
+        else if (t.endsWith("_")) { dur = "eighth"; t = t.slice(0,-1); }
+
+        // Hold sign
+        if (t === "-") {
+          curBar.push({ type:"hold", dur });
+          continue;
         }
+        // Rest
+        if (t === "0") {
+          curBar.push({ type:"rest", dur });
+          continue;
+        }
+
+        // Dotted duration (e.g. 1.)
+        let dotted = false;
+        if (t.endsWith(".")) { dotted = true; t = t.slice(0,-1); }
+
+        // Octave markers
+        let octShift = 0;
+        while (t.endsWith("'")) { octShift++; t = t.slice(0,-1); }
+        while (t.endsWith(",")) { octShift--; t = t.slice(0,-1); }
+
+        const degree = parseInt(t);
+        if (isNaN(degree) || degree < 1 || degree > 7) continue;
+
+        // Convert scale degree to MIDI pitch
+        // Scale degree 1 = rootMidi (e.g. C4 in C major)
+        // We need to ensure ascending scale stays in reasonable octave
+        const semitones = MAJOR_SCALE[degree - 1];
+        let midi = rootMidi + semitones + octShift * 12;
+
+        // Keep notes in a sensible range (treble: MIDI 60-84, bass: 36-60)
+        // Adjust by octave so they fit
+        while (midi > 84) midi -= 12;
+        while (midi < 48) midi += 12;
+
+        curBar.push({ type:"note", degree, midi, dur, dotted });
       }
-      const mEnd=xCur+mW;
-      if(isLast){
-        if(clef!=='bass')drawFinalBar(g,mEnd,tY);
-        if(clef==='both')drawFinalBar(g,mEnd,bY);
-        if(clef==='bass')drawFinalBar(g,mEnd,tY);
-      }else if(col===rowMs.length-1){
-        if(clef!=='bass')drawBarLine(g,mEnd,tY);
-        if(clef==='both')drawBarLine(g,mEnd,bY);
-        if(clef==='bass')drawBarLine(g,mEnd,tY);
-      }
-      xCur+=mW;
+      if (curBar.length) bars.push(curBar);
+      return bars;
     }
-  }
-}
 
-// ── Export helpers ────────────────────────────────────────────────────────────
-function svgToDataURL(){
-  const svg=document.getElementById('staff-svg');
-  const bg=document.createElementNS(SVG_NS,'rect');
-  bg.setAttribute('width','100%');bg.setAttribute('height','100%');bg.setAttribute('fill','white');
-  svg.insertBefore(bg,svg.firstChild);
-  const data=new XMLSerializer().serializeToString(svg);
-  svg.removeChild(bg);
-  return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(data);
-}
-function svgToCanvas(cb){
-  const svg=document.getElementById('staff-svg');
-  const w=parseInt(svg.getAttribute('width')||800);
-  const h=parseInt(svg.getAttribute('height')||400);
-  const canvas=document.createElement('canvas');
-  canvas.width=w*2;canvas.height=h*2;
-  const ctx=canvas.getContext('2d');
-  ctx.fillStyle='white';ctx.fillRect(0,0,canvas.width,canvas.height);
-  ctx.scale(2,2);
-  const img=new Image();
-  img.onload=()=>{ctx.drawImage(img,0,0);cb(canvas);};
-  img.onerror=()=>setStatus('Export failed — try a different browser.');
-  img.src=svgToDataURL();
-}
+    // MIDI → note name + octave
+    function midiToNote(midi) {
+      const oct  = Math.floor(midi / 12) - 1;
+      const name = NOTE_NAMES[midi % 12];
+      return { name, oct };
+    }
 
-// ── UI wiring ─────────────────────────────────────────────────────────────────
-function setStatus(msg,ok=false){
-  const el=document.getElementById('status');
-  el.textContent=msg;
-  el.style.color=ok?'#C9A84C':'rgba(248,245,238,0.4)';
-  el.style.fontStyle=ok?'italic':'italic';
-}
+    // Diatonic position (steps from C4)
+    function diatonicPos(name, oct) {
+      const base = name.replace("#","").replace("b","");
+      const b    = DIATONIC.indexOf(base);
+      return b === -1 ? null : (oct - 4) * 7 + b;
+    }
 
-// Image preview
-document.getElementById('file-input').addEventListener('change',e=>{
-  const f=e.target.files[0];if(!f)return;
-  const r=new FileReader();
-  r.onload=ev=>{
-    document.getElementById('preview-img').src=ev.target.result;
-    document.getElementById('preview-wrap').classList.remove('hidden');
-  };
-  r.readAsDataURL(f);
-});
+    // ── SVG staff renderer ───────────────────────────────────────────────────
+    const SVG_NS  = "http://www.w3.org/2000/svg";
+    const SP      = 8;     // pixels per staff space
+    const STAFF_H = 4*SP;  // 32px
+    const ROW_H   = 90;    // px per staff row (staff + space for lyrics/chords above)
+    const PAPER_W = 800;   // fixed paper width
 
-// Drag over highlight
-const dz=document.getElementById('drop-zone');
-dz.addEventListener('dragover',e=>{e.preventDefault();dz.style.borderColor='#C9A84C';});
-dz.addEventListener('dragleave',()=>{dz.style.borderColor='';});
-dz.addEventListener('drop',e=>{
-  e.preventDefault();dz.style.borderColor='';
-  const f=e.dataTransfer.files[0];if(!f)return;
-  document.getElementById('file-input').files=e.dataTransfer.files;
-  document.getElementById('file-input').dispatchEvent(new Event('change'));
-});
+    // Staff geometry within a row
+    const STAFF_TOP = 28;  // Y of top staff line within a row (leaves space for chord names)
+    // refY within a row = bottom staff line Y
+    const REF_Y_IN_ROW = STAFF_TOP + STAFF_H;
 
-// Convert
-document.getElementById('convert-btn').addEventListener('click',runConvert);
-document.getElementById('jianpu-input').addEventListener('keydown',e=>{
-  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();runConvert();}
-});
+    const COLORS = {
+      bg:     "#141414",
+      staff:  "rgba(248,245,238,0.28)",
+      clef:   "#C9A84C",
+      note:   "#F8F5EE",
+      gold:   "#C9A84C",
+      rest:   "rgba(248,245,238,0.6)",
+      text:   "rgba(248,245,238,0.7)",
+      chord:  "#C9A84C",
+      acc:    "#7CB9E8",
+      bar:    "rgba(248,245,238,0.35)",
+      lyrics: "rgba(248,245,238,0.6)",
+    };
 
-function runConvert(){
-  const text=document.getElementById('jianpu-input').value.trim();
-  const key=document.getElementById('key-select').value;
-  const timeSig=document.getElementById('time-select').value;
-  const clef=document.getElementById('clef-select').value;
-  const perRow=parseInt(document.getElementById('perrow-select').value,10);
-  const showChords=document.getElementById('show-chords').checked;
-  const lyrics=document.getElementById('lyrics-input').value.trim();
+    // Key signature accidental positions on treble staff (diatonic pos)
+    const TREBLE_ACC_POS = { "F":10, "C":7, "G":11, "D":8, "A":5, "E":9, "B":6 };
+    const BASS_ACC_POS   = { "F":3,  "C":0, "G":4,  "D":1, "A":-2,"E":2, "B":-1 };
+    // Flat positions differ slightly
+    const TREBLE_FLAT_POS = { "B":6, "E":9, "A":5, "D":8, "G":4, "C":7, "F":10 };
+    const BASS_FLAT_POS   = { "B":-1,"E":2, "A":-2,"D":1, "G":-3,"C":0, "F":3  };
 
-  if(!text){setStatus('Please enter jianpu notation above.');return;}
+    function el(tag, attrs={}, children=[]) {
+      const e = document.createElementNS(SVG_NS, tag);
+      for (const [k,v] of Object.entries(attrs)) e.setAttribute(k, v);
+      for (const c of children) if (c) e.appendChild(c);
+      return e;
+    }
 
-  let measures;
-  try{
-    measures=parseJianpu(text);
-    if(!measures.length){setStatus('No notes found — check your format.');return;}
-  }catch(e){setStatus('Parse error: '+e.message);return;}
+    function txt(content, x, y, opts={}) {
+      return el("text", {
+        x, y,
+        fill:        opts.fill || COLORS.text,
+        "font-size": opts.size || 10,
+        "font-family": opts.font || "'DM Sans', sans-serif",
+        "text-anchor": opts.anchor || "middle",
+        "font-weight": opts.weight || "normal",
+        ...opts.extra,
+      }, [document.createTextNode(content)]);
+    }
 
-  const lyricWords=lyrics?lyrics.split(/\s+/).filter(Boolean):[];
-  const chords=showChords?measures.map(m=>{
-    const r=detectChord(m.notes,key);
-    return{roman:r,label:r?chordLabel(r,key):''};
-  }):[];
+    // Y within a row for a diatonic position (relative to row top=0)
+    function noteY(dp, clefName) {
+      // Bottom staff line dp
+      const botDp = clefName === "bass" ? -10 : 2;
+      return REF_Y_IN_ROW - (dp - botDp) * (SP / 2);
+    }
 
-  document.getElementById('output-section').classList.remove('hidden');
+    // Draw 5 staff lines for one row
+    function drawStaffLines(rowG, clefName, startX, endX) {
+      for (let i = 0; i <= 4; i++) {
+        const y = STAFF_TOP + i * SP;
+        rowG.appendChild(el("line", {
+          x1:y, y1:y, x2:endX, y2:y,   // fix: use x1/y1 correctly
+          stroke: COLORS.staff, "stroke-width":"0.8",
+        }));
+        // Redo with correct attribute names
+        const line = el("line", {
+          x1: startX, y1: STAFF_TOP + (4-i)*SP,
+          x2: endX,   y2: STAFF_TOP + (4-i)*SP,
+          stroke: COLORS.staff, "stroke-width": "0.8",
+        });
+        rowG.appendChild(line);
+      }
+    }
 
-  requestAnimationFrame(()=>{
-    const svg=document.getElementById('staff-svg');
-    renderStaff(svg,measures,clef,key,timeSig,perRow,lyricWords,chords);
-    const isMobile=window.innerWidth<640;
-    const hint=document.getElementById('scroll-hint');
-    hint.classList.toggle('hidden',!isMobile);
-    setStatus(`✓ ${measures.length} bar${measures.length!==1?'s':''} · ${Math.ceil(measures.length/perRow)} row${Math.ceil(measures.length/perRow)!==1?'s':''}`,true);
-  });
-}
+    // Draw clef at start of row
+    function drawClef(rowG, clefName, x) {
+      const char = clefName === "bass" ? "\u{1D122}" : "\u{1D11E}";
+      const size = clefName === "bass" ? SP * 5.5 : SP * 10;
+      // Treble: baseline so curl lands on G line (line 2 from bottom = STAFF_TOP + 3*SP)
+      // Bass: baseline at ~REF_Y_IN_ROW - SP * 0.2
+      const baseY = clefName === "treble"
+        ? STAFF_TOP + 3*SP + SP * 1.8
+        : REF_Y_IN_ROW - SP * 0.2;
+      rowG.appendChild(el("text", {
+        x, y: baseY,
+        fill: COLORS.clef,
+        "font-size":   size,
+        "font-family": "'Noto Music','FreeSerif',serif",
+        "text-anchor": "start",
+      }, [document.createTextNode(char)]));
+    }
 
-// Export PNG
-document.getElementById('export-png-btn').addEventListener('click',()=>{
-  svgToCanvas(canvas=>{
-    const a=document.createElement('a');
-    a.download='staff-notation.png';
-    a.href=canvas.toDataURL('image/png');
-    a.click();
-  });
-});
+    // Draw key signature accidentals
+    function drawKeySig(rowG, keyName, clefName, startX) {
+      const info = KEYS[keyName];
+      if (!info || !info.accidentals.length) return startX;
+      const isSharp = info.type === "sharp";
+      const posMap  = isSharp
+        ? (clefName === "bass" ? BASS_ACC_POS  : TREBLE_ACC_POS)
+        : (clefName === "bass" ? BASS_FLAT_POS : TREBLE_FLAT_POS);
+      const char = isSharp ? "♯" : "♭";
+      let x = startX;
+      for (const note of info.accidentals) {
+        const dp = posMap[note];
+        if (dp === undefined) continue;
+        const y = noteY(dp, clefName);
+        rowG.appendChild(el("text", {
+          x, y: y + 4,
+          fill: COLORS.clef,
+          "font-size": SP * 1.6,
+          "font-family": "serif",
+          "text-anchor": "middle",
+        }, [document.createTextNode(char)]));
+        x += SP * 1.4;
+      }
+      return x;
+    }
 
-// Export PDF
-document.getElementById('export-pdf-btn').addEventListener('click',()=>{
-  svgToCanvas(canvas=>{
-    const imgData=canvas.toDataURL('image/png');
-    const key=document.getElementById('key-select').value;
-    const ts=document.getElementById('time-select').value;
-    const w=window.open('','_blank');
-    w.document.write(`<!DOCTYPE html><html><head><title>Staff Notation</title>
-<style>@page{size:A4 portrait;margin:12mm;}body{margin:0;padding:0;background:white;font-family:Georgia,serif;}
-.hdr{font-size:11px;color:#666;margin-bottom:6px;}img{max-width:100%;height:auto;display:block;}
-button{margin-top:12px;padding:8px 20px;font-size:14px;cursor:pointer;}
-@media print{button{display:none;}}</style></head><body>
-<div class="hdr">Key: 1=${key} &nbsp;|&nbsp; Time: ${ts} &nbsp;|&nbsp; Big Piano Small Piano</div>
-<img src="${imgData}">
-<button onclick="window.print()">Print / Save as PDF</button>
-</body></html>`);
-    w.document.close();
-  });
-});
-</script>
+    // Draw time signature
+    function drawTimeSig(rowG, timeSig, x) {
+      const [num, den] = timeSig.split("/");
+      rowG.appendChild(txt(num, x, STAFF_TOP + SP * 1.5, { size: SP*2, weight:"bold", fill: COLORS.clef }));
+      rowG.appendChild(txt(den, x, STAFF_TOP + SP * 3.2, { size: SP*2, weight:"bold", fill: COLORS.clef }));
+      return x + SP * 2.5;
+    }
+
+    // Draw a notehead at dp position within row
+    function drawNotehead(rowG, x, dp, clefName, isActive, isAccid, isLandmark) {
+      const y  = noteY(dp, clefName);
+      const rx = SP * 0.52, ry = SP * 0.37;
+      const fill = isLandmark ? COLORS.gold : isAccid ? COLORS.acc : COLORS.note;
+      rowG.appendChild(el("ellipse", {
+        cx: x, cy: y, rx, ry,
+        transform: `rotate(-8,${x},${y})`,
+        fill,
+      }));
+      return y;
+    }
+
+    // Draw stem
+    function drawStem(rowG, x, noteY, dp, clefName) {
+      const midDp   = clefName === "bass" ? -6 : 6;
+      const stemUp  = dp < midDp;
+      const rx      = SP * 0.52;
+      const stemLen = SP * 3.5;
+      const stemX   = x + (stemUp ? rx * 0.9 : -rx * 0.9);
+      rowG.appendChild(el("line", {
+        x1: stemX, y1: noteY,
+        x2: stemX, y2: noteY + (stemUp ? -stemLen : stemLen),
+        stroke: COLORS.note, "stroke-width": "1.4",
+      }));
+      return { stemUp, stemX, stemY: noteY + (stemUp ? -stemLen : stemLen) };
+    }
+
+    // Draw flag for eighth/sixteenth
+    function drawFlag(rowG, stemX, stemEndY, stemUp, count) {
+      for (let i = 0; i < count; i++) {
+        const startY = stemEndY + i * (stemUp ? 5 : -5);
+        const cp1x = stemX + (stemUp ? 10 : -10);
+        const cp2x = stemX + (stemUp ? 12 : -12);
+        const endY = startY + (stemUp ? 14 : -14);
+        rowG.appendChild(el("path", {
+          d: `M${stemX},${startY} C${cp1x},${startY} ${cp2x},${endY} ${stemX},${endY + (stemUp ? -4 : 4)}`,
+          fill: "none", stroke: COLORS.note, "stroke-width":"1.4", "stroke-linecap":"round",
+        }));
+      }
+    }
+
+    // Draw ledger lines
+    function drawLedgerLines(rowG, x, dp, clefName) {
+      const botDp = clefName === "bass" ? -10 : 2;
+      const topDp = clefName === "bass" ? -2  : 10;
+      const rx    = SP * 0.52;
+      const lw    = rx * 1.9;
+      for (let p = botDp - 2; p >= dp; p -= 2) {
+        const ly = noteY(p, clefName);
+        rowG.appendChild(el("line",{x1:x-lw,y1:ly,x2:x+lw,y2:ly,stroke:COLORS.rest,"stroke-width":"1.2"}));
+      }
+      for (let p = topDp + 2; p <= dp; p += 2) {
+        const ly = noteY(p, clefName);
+        rowG.appendChild(el("line",{x1:x-lw,y1:ly,x2:x+lw,y2:ly,stroke:COLORS.rest,"stroke-width":"1.2"}));
+      }
+    }
+
+    // Draw rest symbol
+    function drawRest(rowG, x, clefName) {
+      const y = noteY(clefName === "bass" ? -6 : 6, clefName);
+      rowG.appendChild(el("rect", {
+        x: x-5, y: y-3, width:10, height:5,
+        fill: COLORS.rest,
+      }));
+    }
+
+    // ── Chord detection ──────────────────────────────────────────────────────
+    const CHORD_NAMES = ["I","II","III","IV","V","VI","VII"];
+    function detectChord(notes, key) {
+      if (!notes.length) return null;
+      const degrees = [...new Set(notes.map(n => n.degree).filter(Boolean))];
+      if (!degrees.length) return null;
+      // Simple: first degree = root, label with Roman numeral
+      const root = degrees[0];
+      return { roman: CHORD_NAMES[root-1] || "?", degree: root };
+    }
+
+    // ── Main render ──────────────────────────────────────────────────────────
+    function render() {
+      const raw        = inputEl.value.trim();
+      if (!raw) return;
+
+      const key        = keyEl.value;
+      const timeSig    = timeEl.value;
+      const clefMode   = clefEl.value;
+      const barsPerRow = parseInt(barsRowEl.value);
+      const doChords   = showChordsEl.checked;
+      const doNames    = showNamesEl.checked;
+      const lyricsRaw  = lyricsEl.value.trim();
+      const lyrics     = lyricsRaw ? lyricsRaw.split(/\s+/) : [];
+      let   lyricIdx   = 0;
+
+      const bars   = parseJianpu(raw, key, timeSig);
+      const clefs  = clefMode === "grand" ? ["treble","bass"] : [clefMode];
+      const numRows = Math.ceil(bars.length / barsPerRow);
+
+      // SVG dimensions
+      const clefZone  = 60;
+      const barW      = (PAPER_W - clefZone) / barsPerRow;
+      const noteW     = barW / 6;   // space per note within a bar
+      const rowH      = clefMode === "grand" ? ROW_H * 2 + 20 : ROW_H;
+      const svgH      = numRows * rowH + 20;
+
+      staffSvg.innerHTML = "";
+      staffSvg.setAttribute("width",  PAPER_W);
+      staffSvg.setAttribute("height", svgH);
+      staffSvg.setAttribute("viewBox", `0 0 ${PAPER_W} ${svgH}`);
+      staffSvg.style.background = COLORS.bg;
+
+      // Background
+      staffSvg.appendChild(el("rect",{x:0,y:0,width:PAPER_W,height:svgH,fill:COLORS.bg}));
+
+      for (let rowIdx = 0; rowIdx < numRows; rowIdx++) {
+        const rowBars = bars.slice(rowIdx * barsPerRow, (rowIdx+1) * barsPerRow);
+        const rowTopY = rowIdx * rowH + 10;
+
+        for (const clefName of clefs) {
+          const clefOffset = clefMode === "grand" && clefName === "bass" ? ROW_H + 10 : 0;
+          const rY = rowTopY + clefOffset;
+
+          const rowG = el("g", { transform: `translate(0,${rY})` });
+
+          // Staff lines
+          drawStaffLines(rowG, clefName, 0, PAPER_W);
+
+          // Clef
+          let curX = 4;
+          drawClef(rowG, clefName, curX);
+          curX += clefName === "bass" ? 28 : 34;
+
+          // Key signature
+          curX = drawKeySig(rowG, key, clefName, curX);
+          curX += 4;
+
+          // Time signature (first row only)
+          if (rowIdx === 0) {
+            curX = drawTimeSig(rowG, timeSig, curX);
+          }
+
+          curX = clefZone;
+
+          // Bars
+          rowBars.forEach((bar, bi) => {
+            const barStartX = clefZone + bi * barW;
+            const barEndX   = barStartX + barW;
+
+            // Bar line at start (except very first)
+            if (bi > 0 || rowIdx > 0) {
+              rowG.appendChild(el("line",{
+                x1:barStartX,y1:STAFF_TOP,
+                x2:barStartX,y2:STAFF_TOP+STAFF_H,
+                stroke:COLORS.bar,"stroke-width":"1",
+              }));
+            }
+
+            // Chord name above bar
+            if (doChords) {
+              const chord = detectChord(bar, key);
+              if (chord) {
+                rowG.appendChild(txt(chord.roman, barStartX + barW/2, STAFF_TOP - 8, {
+                  fill: COLORS.chord, size: 9, weight: "600",
+                }));
+              }
+            }
+
+            // Notes within bar
+            const notesInBar = bar.filter(n => n.type === "note" || n.type === "rest");
+            notesInBar.forEach((note, ni) => {
+              const x = barStartX + (ni + 0.5) * (barW / Math.max(notesInBar.length, 1));
+
+              if (note.type === "rest") {
+                drawRest(rowG, x, clefName);
+                return;
+              }
+
+              const { name, oct } = midiToNote(note.midi);
+              const dp  = diatonicPos(name, oct);
+              if (dp === null) return;
+
+              const isAccid    = name.includes("#");
+              const isLandmark = false; // simplified for jianpu display
+
+              // Ledger lines
+              drawLedgerLines(rowG, x, dp, clefName);
+
+              // Notehead
+              const ny = drawNotehead(rowG, x, dp, clefName, false, isAccid, isLandmark);
+
+              // Stem + flags
+              if (note.dur !== "whole") {
+                const { stemUp, stemX, stemY } = drawStem(rowG, x, ny, dp, clefName);
+                if (note.dur === "eighth")     drawFlag(rowG, stemX, stemY, stemUp, 1);
+                if (note.dur === "sixteenth")  drawFlag(rowG, stemX, stemY, stemUp, 2);
+              }
+
+              // Sharp sign
+              if (isAccid) {
+                rowG.appendChild(el("text",{
+                  x: x - SP*1.4, y: ny + 3,
+                  fill: COLORS.acc, "font-size": SP*1.3,
+                  "font-family":"serif","text-anchor":"middle",
+                }, [document.createTextNode("♯")]));
+              }
+
+              // Note name
+              if (doNames) {
+                rowG.appendChild(txt(name.replace("#",""), x, ny + SP*0.45+3, {
+                  size: 7, fill:"rgba(201,168,76,0.6)", weight:"500",
+                }));
+              }
+
+              // Scale degree number below staff
+              rowG.appendChild(txt(note.degree || "", x, REF_Y_IN_ROW + SP*1.8, {
+                size: 8, fill:"rgba(248,245,238,0.3)",
+              }));
+
+              // Lyrics
+              if (lyrics[lyricIdx]) {
+                rowG.appendChild(txt(lyrics[lyricIdx], x, REF_Y_IN_ROW + SP*3.2, {
+                  size: 9, fill: COLORS.lyrics,
+                }));
+              }
+              lyricIdx++;
+            });
+
+            // Final bar line
+            if (bi === rowBars.length - 1) {
+              const ex = barEndX;
+              rowG.appendChild(el("line",{
+                x1:ex,y1:STAFF_TOP,x2:ex,y2:STAFF_TOP+STAFF_H,
+                stroke:COLORS.bar,"stroke-width":"1.5",
+              }));
+            }
+          });
+
+          staffSvg.appendChild(rowG);
+        }
+      }
+
+      // Show output
+      emptyState.classList.add("hidden");
+      outputCont.classList.remove("hidden");
+      exportPng.classList.remove("hidden");
+      exportPdf.classList.remove("hidden");
+      outputInfo.textContent = `${bars.length} bars · ${key} major · ${timeSig}`;
+    }
+
+    // ── Export PNG ────────────────────────────────────────────────────────────
+    exportPng.addEventListener("click", () => {
+      const svgData  = new XMLSerializer().serializeToString(staffSvg);
+      const svgBlob  = new Blob([svgData], {type:"image/svg+xml"});
+      const url      = URL.createObjectURL(svgBlob);
+      const img      = new Image();
+      const scale    = 2;
+      img.onload = () => {
+        const canvas   = document.createElement("canvas");
+        canvas.width   = staffSvg.getAttribute("width")  * scale;
+        canvas.height  = staffSvg.getAttribute("height") * scale;
+        const ctx      = canvas.getContext("2d");
+        ctx.scale(scale, scale);
+        ctx.drawImage(img, 0, 0);
+        const a = document.createElement("a");
+        a.href     = canvas.toDataURL("image/png");
+        a.download = "jianpu-staff.png";
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+      img.src = url;
+    });
+
+    // ── Export PDF ────────────────────────────────────────────────────────────
+    exportPdf.addEventListener("click", () => {
+      const svgData = new XMLSerializer().serializeToString(staffSvg);
+      const w = window.open("","_blank");
+      w.document.write(`
+        <!DOCTYPE html><html><head>
+        <title>Jianpu Staff Notation</title>
+        <style>body{margin:20px;background:#fff;}svg{max-width:100%;}</style>
+        </head><body>
+        ${svgData}
+        <script>window.onload=()=>{window.print();}<\/script>
+        </body></html>`);
+      w.document.close();
+    });
+
+    // ── Events ────────────────────────────────────────────────────────────────
+    convertBtn.addEventListener("click", render);
+    clearBtn.addEventListener("click", () => {
+      inputEl.value = "";
+      lyricsEl.value = "";
+      emptyState.classList.remove("hidden");
+      outputCont.classList.add("hidden");
+      exportPng.classList.add("hidden");
+      exportPdf.classList.add("hidden");
+    });
+
+    // Auto-convert on settings change if there's input
+    [keyEl, timeEl, clefEl, barsRowEl, showChordsEl, showNamesEl].forEach(el => {
+      el.addEventListener("change", () => { if (inputEl.value.trim()) render(); });
+    });
+
+    // Enter key in input converts
+    inputEl.addEventListener("keydown", e => {
+      if (e.key === "Enter" && e.ctrlKey) render();
+    });
+
+    // Load Noto Music font
+    const font = new FontFace("Noto Music",
+      "url(https://fonts.gstatic.com/s/notomusic/v20/W9S0n5kWhSfBQT0dEKByWg.woff2)");
+    font.load().then(f => document.fonts.add(f)).catch(()=>{});
+
+  })();
+  </script>
+
+</Layout>
